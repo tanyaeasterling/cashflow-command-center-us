@@ -1,10 +1,10 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
 import { Header } from "@/components/layout/Header";
 import { TabBar } from "@/components/layout/TabBar";
 import { LoadedFilesBar } from "@/components/layout/LoadedFilesBar";
 import { useUIStore } from "@/store/useUIStore";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import Login from "./Login";
 
 // Tab components
 import { Overview } from "./tabs/Overview";
@@ -57,39 +57,7 @@ export default function Dashboard() {
   }
 
   if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--tec-purple-deep)" }}>
-        <div className="flex flex-col items-center gap-4 text-center px-4">
-          <div
-            className="w-16 h-16 rounded-full flex items-center justify-center"
-            style={{ background: "oklch(30% 0.14 310)" }}
-          >
-            <Lock size={28} style={{ color: "var(--tec-gold)" }} />
-          </div>
-          <div>
-            <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: "var(--tec-gold-light)" }}>
-              Tanya Easterling Consulting
-            </p>
-            <h1 className="text-3xl font-semibold mb-2" style={{ color: "oklch(97% 0.01 300)", fontFamily: "'DM Serif Display', serif" }}>
-              Cashflow Command Center
-            </h1>
-            <p className="text-sm" style={{ color: "oklch(70% 0.05 300)" }}>
-              Your secure financial analysis portal. Sign in to access your dashboard.
-            </p>
-          </div>
-          <a
-            href={getLoginUrl()}
-            className="flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
-            style={{ background: "var(--tec-gold)", color: "oklch(15% 0.05 75)" }}
-          >
-            Sign In with Manus
-          </a>
-          <p className="text-xs" style={{ color: "oklch(50% 0.06 300)" }}>
-            Authorised TEC clients only &mdash; contact Tanya to request access
-          </p>
-        </div>
-      </div>
-    );
+    return <Login />;
   }
 
   return (
