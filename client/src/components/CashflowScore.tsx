@@ -1,5 +1,5 @@
 import { useReportStore } from "@/store/useReportStore";
-import { CLIENT_CONFIG } from "../../../../shared/config/caulsConfig";
+import { CLIENT_CONFIG } from "../../../shared/config/caulsConfig";
 
 // ─── CASHFLOW Letter definitions ──────────────────────────────────────────────
 // Each letter maps to data already in the store.
