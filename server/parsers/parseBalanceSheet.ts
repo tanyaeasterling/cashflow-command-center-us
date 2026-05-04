@@ -1,104 +1,136 @@
-import type { BalanceSheetData, LineItem, PFSubAccount } from "../../shared/types/reports";
+import type { BalanceSheetData } from "../../shared/types/reports";
 import { parseQBOAmount } from "./parseCSV";
 
-const PF_BUCKET_NAMES = [
-  'payables', 'vat', 'stamp tax', 'real revenue', 'debt paydown',
-  'capex', 'compensation', 'operating', 'payroll', 'rent',
-  'taxes', 'vault', 'profit', 'marketing', 'charity',
-];
+// CaulCo QBO Caribbean Balance Sheet format:
+// Row 1: "Balance Sheet,"
+// Row 2: "CaulCo Inc,"
+// Row 3: "As of 31 Mar, 2026,"
+// Row 4: blank
+// Row 5: ",Total"  <- headers (account name column is UNNAMED)
+// Rows 6+: account name in first column, amount in "Total" column
+// Section headers have no amount (e.g. "Assets,", "Current Assets,")
+// "Total for X" rows are subtotals
+// "TOTAL" rows are grand totals
 
-export function parseBalanceSheet(lines: string[]): BalanceSheetData {
-  const result: BalanceSheetData = {
-    asOfDate: '',
-    basis: 'Accrual',
-    assets: { currentAssets: [], fixedAssets: [], otherAssets: [], totalAssets: 0 },
-    liabilities: { currentLiabilities: [], longTermLiabilities: [], totalLiabilities: 0 },
-    equity: { items: [], totalEquity: 0 },
-    pfSubAccounts: [],
-    vatSuspense: 0,
-    stampTaxProvision: 0,
-  };
+interface RawRow { name: string; amount: number | null }
 
-  let section: 'currentAssets' | 'fixedAssets' | 'otherAssets' | 'currentLiabilities' | 'longTermLiabilities' | 'equity' | null = null;
+function extractRows(rows: Record<string, string>[]): RawRow[] {
+  return rows.map(row => {
+    // Account name is in the unnamed first column or any key that isn't "Total"
+    const keys = Object.keys(row);
+    const nameKey = keys.find(k => k !== 'Total' && k !== 'total') ?? keys[0] ?? '';
+    const name = (row[nameKey] ?? '').trim();
+    const rawAmount = row['Total'] ?? row['total'] ?? '';
+    const amount = rawAmount.trim() ? parseQBOAmount(rawAmount) : null;
+    return { name, amount };
+  });
+}
 
-  for (const line of lines) {
-    const lower = line.toLowerCase();
+export function parseBalanceSheet(rows: Record<string, string>[]): BalanceSheetData {
+  const raw = extractRows(rows);
 
-    // Date detection
-    if (/as of|as at/i.test(line) && !result.asOfDate) {
-      const match = line.match(/\b(\w+ \d+,?\s*\d{4}|\d{1,2}\/\d{1,2}\/\d{4})\b/);
-      if (match) result.asOfDate = match[1];
-    }
+  const currentAssets: { name: string; amount: number }[] = [];
+  const nonCurrentAssets: { name: string; amount: number }[] = [];
+  const currentLiabilities: { name: string; amount: number }[] = [];
+  const nonCurrentLiabilities: { name: string; amount: number }[] = [];
+  const equityItems: { name: string; amount: number }[] = [];
 
-    // Basis detection
-    if (/cash basis/i.test(line)) result.basis = 'Cash';
-    if (/accrual basis/i.test(line)) result.basis = 'Accrual';
+  let totalAssets = 0;
+  let totalLiabilities = 0;
+  let totalEquity = 0;
+  let totalCurrentAssets = 0;
+  let totalCurrentLiabilities = 0;
+  let asOfDate = '';
+
+  let section: 'current_assets' | 'noncurrent_assets' | 'current_liabilities' | 'noncurrent_liabilities' | 'equity' | 'none' = 'none';
+
+  for (const { name, amount } of raw) {
+    if (!name) continue;
+
+    // Capture as-of date
+    if (/^As of/i.test(name)) { asOfDate = name; continue; }
+
+    // Skip metadata
+    if (/^Balance Sheet|^CaulCo|^Monday|^Tuesday|^Wednesday|^Thursday|^Friday|^Saturday|^Sunday/i.test(name)) continue;
+
+    // Detect grand totals
+    if (/^Total Assets$/i.test(name) && amount !== null) { totalAssets = amount; continue; }
+    if (/^Total Liabilities$/i.test(name) && amount !== null) { totalLiabilities = amount; continue; }
+    if (/^Total Equity|^Total Owner|^Net Assets/i.test(name) && amount !== null) { totalEquity = amount; continue; }
+
+    // Detect subtotals
+    if (/^Total for Current Assets|^Total Current Assets/i.test(name) && amount !== null) { totalCurrentAssets = amount; continue; }
+    if (/^Total for Current Liabilities|^Total Current Liabilities/i.test(name) && amount !== null) { totalCurrentLiabilities = amount; continue; }
+
+    // Skip other "Total for" subtotal rows
+    if (/^Total for /i.test(name)) continue;
 
     // Section detection
-    if (/current assets/i.test(line) && !/total/i.test(line)) { section = 'currentAssets'; continue; }
-    if (/fixed assets|property|equipment/i.test(line) && !/total/i.test(line)) { section = 'fixedAssets'; continue; }
-    if (/other assets/i.test(line) && !/total/i.test(line)) { section = 'otherAssets'; continue; }
-    if (/current liabilities/i.test(line) && !/total/i.test(line)) { section = 'currentLiabilities'; continue; }
-    if (/long.?term liabilities/i.test(line) && !/total/i.test(line)) { section = 'longTermLiabilities'; continue; }
-    if (/equity/i.test(line) && !/total/i.test(line)) { section = 'equity'; continue; }
+    if (/^Current Assets$/i.test(name)) { section = 'current_assets'; continue; }
+    if (/^Non-?current Assets|^Fixed Assets|^Long.?term Assets/i.test(name)) { section = 'noncurrent_assets'; continue; }
+    if (/^Current Liabilities$/i.test(name)) { section = 'current_liabilities'; continue; }
+    if (/^Non-?current Liabilities|^Long.?term Liabilities/i.test(name)) { section = 'noncurrent_liabilities'; continue; }
+    if (/^Equity|^Owner|^Shareholder/i.test(name)) { section = 'equity'; continue; }
+    if (/^Assets$/i.test(name)) { section = 'current_assets'; continue; }
+    if (/^Liabilities$/i.test(name)) { section = 'current_liabilities'; continue; }
 
-    // Total rows
-    if (/total assets/i.test(line)) {
-      result.assets.totalAssets = extractAmount(line);
-      continue;
-    }
-    if (/total liabilities/i.test(line) && !/equity/i.test(line)) {
-      result.liabilities.totalLiabilities = extractAmount(line);
-      continue;
-    }
-    if (/total equity/i.test(line)) {
-      result.equity.totalEquity = extractAmount(line);
-      continue;
-    }
+    // Skip section headers with no amount
+    if (amount === null) continue;
 
-    // VAT Suspense
-    if (/vat suspense/i.test(line)) {
-      result.vatSuspense = Math.abs(extractAmount(line));
-    }
-
-    // Stamp Tax provision
-    if (/stamp tax/i.test(line) && /provision|payable/i.test(line)) {
-      result.stampTaxProvision = Math.abs(extractAmount(line));
-    }
-
-    // PF Sub-accounts
-    const isPFBucket = PF_BUCKET_NAMES.some(b => lower.includes(b));
-    if (isPFBucket && extractAmount(line) !== 0) {
-      const name = line.replace(/[\d,.()\-$]+/g, '').trim();
-      const balance = extractAmount(line);
-      result.pfSubAccounts!.push({ name, balance });
-    }
-
-    // Line items
-    if (section && extractAmount(line) !== 0) {
-      const item: LineItem = {
-        name: line.replace(/[\d,.()\-$]+/g, '').trim(),
-        amount: extractAmount(line),
-      };
-      if (item.name) {
-        if (section === 'currentAssets') result.assets.currentAssets.push(item);
-        else if (section === 'fixedAssets') result.assets.fixedAssets.push(item);
-        else if (section === 'otherAssets') result.assets.otherAssets.push(item);
-        else if (section === 'currentLiabilities') result.liabilities.currentLiabilities.push(item);
-        else if (section === 'longTermLiabilities') result.liabilities.longTermLiabilities.push(item);
-        else if (section === 'equity') result.equity.items.push(item);
-      }
+    // Assign to section
+    switch (section) {
+      case 'current_assets':
+        currentAssets.push({ name, amount });
+        break;
+      case 'noncurrent_assets':
+        nonCurrentAssets.push({ name, amount });
+        break;
+      case 'current_liabilities':
+        currentLiabilities.push({ name, amount });
+        break;
+      case 'noncurrent_liabilities':
+        nonCurrentLiabilities.push({ name, amount });
+        break;
+      case 'equity':
+        equityItems.push({ name, amount });
+        break;
     }
   }
 
-  return result;
-}
+  // If grand totals were not found in labeled rows, compute from sections
+  if (totalAssets === 0 && currentAssets.length > 0) {
+    totalAssets = [...currentAssets, ...nonCurrentAssets].reduce((s, r) => s + r.amount, 0);
+  }
+  if (totalLiabilities === 0 && currentLiabilities.length > 0) {
+    totalLiabilities = [...currentLiabilities, ...nonCurrentLiabilities].reduce((s, r) => s + r.amount, 0);
+  }
+  if (totalEquity === 0 && equityItems.length > 0) {
+    totalEquity = equityItems.reduce((s, r) => s + r.amount, 0);
+  }
+  if (totalCurrentAssets === 0) {
+    totalCurrentAssets = currentAssets.reduce((s, r) => s + r.amount, 0);
+  }
+  if (totalCurrentLiabilities === 0) {
+    totalCurrentLiabilities = currentLiabilities.reduce((s, r) => s + r.amount, 0);
+  }
 
-function extractAmount(line: string): number {
-  const match = line.match(/[\d,]+(\.\d{2})?/g);
-  if (!match) return 0;
-  const lastNum = match[match.length - 1];
-  const isNeg = line.includes('(') || line.startsWith('-');
-  const val = parseFloat(lastNum.replace(/,/g, ''));
-  return isNeg ? -val : val;
+  return {
+    asOfDate,
+    assets: {
+      currentAssets,
+      nonCurrentAssets,
+      totalCurrentAssets,
+      totalAssets,
+    },
+    liabilities: {
+      currentLiabilities,
+      nonCurrentLiabilities,
+      totalCurrentLiabilities,
+      totalLiabilities,
+    },
+    equity: {
+      items: equityItems,
+      totalEquity,
+    },
+  };
 }
