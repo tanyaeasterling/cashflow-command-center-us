@@ -5,7 +5,7 @@ import net from "net";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerOAuthRoutes } from "./oauth";
+import { registerOAuthRoutes, seedAdminUser } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -38,6 +38,9 @@ async function startServer() {
   // Larger body limit for base64-encoded file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Seed the admin account on first boot if it does not exist
+  await seedAdminUser();
 
   // Auth routes (login / logout handled via tRPC, login POST here)
   registerOAuthRoutes(app);
