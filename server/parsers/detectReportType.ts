@@ -11,8 +11,8 @@ const FILENAME_PATTERNS: Array<{ pattern: RegExp; type: ReportType }> = [
   // ProfitFirst MUST come before ProfitLoss to avoid misclassification
   { pattern: /profit.?first|pf.?alloc|pf.?week|weekly.?pf/i, type: 'ProfitFirst' },
   { pattern: /profit.?(and|&|loss)|p&l|p_l|income.?statement/i, type: 'ProfitLoss' },
-  { pattern: /a[_\-\s]?r.?aging|accounts.?receivable.?aging/i, type: 'ARaging' },
-  { pattern: /a[_\-\s]?p.?aging|accounts.?payable.?aging/i,   type: 'APaging' },
+  { pattern: /a[_\-\s]?r.?ag(e?)ing|accounts.?receivable.?ag(e?)ing/i, type: 'ARaging' },
+  { pattern: /a[_\-\s]?p.?ag(e?)ing|accounts.?payable.?ag(e?)ing/i,   type: 'APaging' },
   { pattern: /vat.?detail|tax.?detail/i,  type: 'VATDetail' },
   { pattern: /vat.?summary|tax.?summary/i, type: 'VATSummary' },
   { pattern: /sales.?by.?product|product.?sales/i, type: 'SalesByProduct' },
@@ -29,8 +29,8 @@ const FILENAME_PATTERNS: Array<{ pattern: RegExp; type: ReportType }> = [
 const CONTENT_PATTERNS: Array<{ pattern: RegExp; type: ReportType; weight: number }> = [
   { pattern: /total assets|total liabilities|shareholders.? equity/i, type: 'BalanceSheet', weight: 3 },
   { pattern: /gross profit|net income|cost of goods sold/i,           type: 'ProfitLoss',   weight: 3 },
-  { pattern: /accounts receivable aging|a\/r aging/i,                 type: 'ARaging',      weight: 3 },
-  { pattern: /accounts payable aging|a\/p aging/i,                    type: 'APaging',      weight: 3 },
+  { pattern: /accounts receivable ag(e?)ing|a\/r ag(e?)ing/i,           type: 'ARaging',      weight: 3 },
+  { pattern: /accounts payable ag(e?)ing|a\/p ag(e?)ing/i,              type: 'APaging',      weight: 3 },
   { pattern: /vat detail|tax code|taxable amount/i,                   type: 'VATDetail',    weight: 3 },
   { pattern: /vat summary|output tax|input tax/i,                     type: 'VATSummary',   weight: 3 },
   { pattern: /payables.*bucket|vat.*bucket|profit.*bucket/i,          type: 'ProfitFirst',  weight: 3 },
