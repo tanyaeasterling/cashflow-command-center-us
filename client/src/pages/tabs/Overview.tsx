@@ -1,13 +1,14 @@
 import { useReportStore } from "@/store/useReportStore";
 import { KPICard } from "@/components/ui/KPICard";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { CashflowScore } from "@/components/CashflowScore";
 import { formatCurrency, formatPercent } from "@/lib/formatters";
 import { CLIENT_CONFIG } from "../../../../shared/config/caulsConfig";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
-import { Banknote, TrendingUp, Users, Building2, Package, AlertTriangle, PiggyBank, Receipt } from "lucide-react";
+import { Banknote, TrendingUp, Users, Building2, AlertTriangle, PiggyBank } from "lucide-react";
 
 export function Overview() {
   const { balanceSheet, profitLoss, arAging, apAging, profitFirst, alerts } = useReportStore();
@@ -61,6 +62,9 @@ export function Overview() {
 
   return (
     <div className="space-y-6">
+      {/* CASHFLOW Health Score — TEC proprietary methodology */}
+      <CashflowScore />
+
       {/* Engagement flags banner */}
       {CLIENT_CONFIG.engagementFlags.length > 0 && (
         <div
