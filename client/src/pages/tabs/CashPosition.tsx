@@ -21,15 +21,18 @@ export function CashPosition() {
     );
   }
 
-  const cash = balanceSheet.assets.currentAssets.find(a => /cash/i.test(a.name))?.amount ?? 0;
-  const totalCurrentAssets = balanceSheet.assets.currentAssets.reduce((s, a) => s + a.amount, 0);
-  const totalCurrentLiabilities = balanceSheet.liabilities.currentLiabilities.reduce((s, l) => s + l.amount, 0);
+  const currentAssets = balanceSheet.assets?.currentAssets ?? [];
+  const currentLiabilities = balanceSheet.liabilities?.currentLiabilities ?? [];
+
+  const cash = currentAssets.find(a => /cash/i.test(a.name))?.amount ?? 0;
+  const totalCurrentAssets = currentAssets.reduce((s, a) => s + (a.amount ?? 0), 0);
+  const totalCurrentLiabilities = currentLiabilities.reduce((s, l) => s + (l.amount ?? 0), 0);
   const currentRatio = totalCurrentLiabilities > 0 ? totalCurrentAssets / totalCurrentLiabilities : null;
   const pfSubAccounts = balanceSheet.pfSubAccounts ?? [];
   const vatSuspense = balanceSheet.vatSuspense ?? 0;
   const stampTax = balanceSheet.stampTaxProvision ?? 0;
 
-  const currentAssetsChartData = balanceSheet.assets.currentAssets
+  const currentAssetsChartData = currentAssets
     .filter(a => a.amount !== 0)
     .map(a => ({ name: a.name.length > 20 ? a.name.slice(0, 20) + '…' : a.name, value: a.amount }));
 
@@ -140,7 +143,7 @@ export function CashPosition() {
               <tr className="bg-muted/40">
                 <td className="py-1.5 px-3 font-semibold" style={{ color: "var(--tec-purple-deep)" }} colSpan={2}>ASSETS</td>
               </tr>
-              {balanceSheet.assets.currentAssets.map((item, i) => (
+              {currentAssets.map((item, i) => (
                 <tr key={i} className="border-b border-border/50">
                   <td className="py-1 px-3 pl-6 text-sm">{item.name}</td>
                   <td className="py-1 px-3 text-right font-medium" style={{ color: item.amount < 0 ? "var(--tec-red)" : "inherit" }}>
@@ -151,13 +154,13 @@ export function CashPosition() {
               <tr className="bg-muted/20 font-semibold">
                 <td className="py-1.5 px-3">Total Assets</td>
                 <td className="py-1.5 px-3 text-right" style={{ color: "var(--tec-purple)" }}>
-                  {formatCurrency(balanceSheet.assets.totalAssets)}
+                  {formatCurrency(balanceSheet.assets?.totalAssets ?? 0)}
                 </td>
               </tr>
               <tr className="bg-muted/40">
                 <td className="py-1.5 px-3 font-semibold" style={{ color: "var(--tec-purple-deep)" }} colSpan={2}>LIABILITIES</td>
               </tr>
-              {balanceSheet.liabilities.currentLiabilities.map((item, i) => (
+              {currentLiabilities.map((item, i) => (
                 <tr key={i} className="border-b border-border/50">
                   <td className="py-1 px-3 pl-6 text-sm">{item.name}</td>
                   <td className="py-1 px-3 text-right font-medium">{formatCurrency(item.amount)}</td>
@@ -166,13 +169,13 @@ export function CashPosition() {
               <tr className="bg-muted/20 font-semibold">
                 <td className="py-1.5 px-3">Total Liabilities</td>
                 <td className="py-1.5 px-3 text-right" style={{ color: "var(--tec-red)" }}>
-                  {formatCurrency(balanceSheet.liabilities.totalLiabilities)}
+                  {formatCurrency(balanceSheet.liabilities?.totalLiabilities ?? 0)}
                 </td>
               </tr>
               <tr className="bg-muted/20 font-semibold border-t-2 border-border">
                 <td className="py-1.5 px-3">Total Equity</td>
                 <td className="py-1.5 px-3 text-right" style={{ color: "var(--tec-green)" }}>
-                  {formatCurrency(balanceSheet.equity.totalEquity)}
+                  {formatCurrency(balanceSheet.equity?.totalEquity ?? 0)}
                 </td>
               </tr>
             </tbody>
