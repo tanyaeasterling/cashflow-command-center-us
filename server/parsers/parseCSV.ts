@@ -23,23 +23,36 @@ export function parseQBOCSV(buffer: Buffer): CSVParseResult {
   const metadata: Record<string, string> = {};
   let dataStartIndex = 0;
 
-  // QBO CSVs often have metadata rows before the actual data headers
-  // e.g. "Report Name,Balance Sheet", "Date Range,Jan 1 - Dec 31 2024"
-  for (let i = 0; i < Math.min(10, lines.length); i++) {
+  // Caribbean QBO CSVs have metadata rows at the top with an empty second column:
+  //   "Balance Sheet,"
+  //   "CaulCo Inc,"
+  //   "As of 31 Mar, 2026,"
+  //   ",Total"   <- this is the real header row (starts with comma = unnamed first col)
+  //
+  // We skip metadata rows until we hit the real header row.
+
+  for (let i = 0; i < Math.min(15, lines.length); i++) {
     const line = lines[i];
-    // If the line looks like a metadata row (2 columns, first is a label)
-    const parts = line.split(',');
-    if (parts.length === 2 && !line.includes('"') && isNaN(Number(parts[1]))) {
-      const key = parts[0].replace(/"/g, '').trim();
-      const val = parts[1].replace(/"/g, '').trim();
-      if (key && val && !/^\d/.test(key)) {
-        metadata[key] = val;
-        dataStartIndex = i + 1;
-        continue;
-      }
+
+    // Real header row for Caribbean QBO starts with a comma (unnamed first column)
+    // e.g. ",Total" or ",Quantity,Amount,..." 
+    if (line.startsWith(',')) {
+      dataStartIndex = i;
+      break;
     }
-    // Stop at the first row that looks like data headers
-    break;
+
+    // Also stop at clear data header patterns
+    if (/^(full name,|date,|account,|customer,|vendor,)/i.test(line)) {
+      dataStartIndex = i;
+      break;
+    }
+
+    // Otherwise treat as metadata and skip
+    const parts = line.split(',');
+    const key = parts[0].replace(/"/g, '').trim();
+    const val = (parts[1] ?? '').replace(/"/g, '').trim();
+    if (key) metadata[key] = val;
+    dataStartIndex = i + 1;
   }
 
   const dataText = lines.slice(dataStartIndex).join('\n');
