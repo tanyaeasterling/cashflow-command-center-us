@@ -3,7 +3,7 @@ import { KPICard } from "@/components/ui/KPICard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { CashflowScore } from "@/components/CashflowScore";
 import { formatCurrency, formatPercent } from "@/lib/formatters";
-import { CLIENT_CONFIG } from "@shared/config/caulsConfig";
+import { CLIENT_CONFIG } from "../../../../shared/config/caulsConfig";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -29,7 +29,7 @@ export function Overview() {
   const totalAssets = balanceSheet?.assets.totalAssets ?? 0;
   const totalLiabilities = balanceSheet?.liabilities.totalLiabilities ?? 0;
   const totalEquity = balanceSheet?.equity.totalEquity ?? 0;
-  const cash = balanceSheet?.assets.currentAssets.find(a => /cash/i.test(a.name))?.amount ?? 0;
+  const cash = balanceSheet?.assets?.currentAssets?.find?.(a => /cash/i.test(a.name))?.amount ?? 0;
   const totalIncome = profitLoss?.totalIncome ?? 0;
   const grossProfit = profitLoss?.grossProfit ?? 0;
   const netIncome = profitLoss?.netIncome ?? 0;
