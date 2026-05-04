@@ -1,7 +1,8 @@
 import { z } from "zod";
+import { createHash } from "crypto";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { reports, alertsTable, clients } from "../../drizzle/schema";
+import { reports, alertsTable, clients, accessLog } from "../../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { detectReportType } from "../parsers/detectReportType";
 import { parseQBOCSV } from "../parsers/parseCSV";
@@ -40,6 +41,9 @@ export const reportsRouter = router({
 
       // Decode base64 to buffer
       const buffer = Buffer.from(input.base64Data, "base64");
+
+      // Compute SHA-256 for audit trail and deduplication
+      const fileHash = createHash("sha256").update(buffer).digest("hex");
 
       // Save file to local storage
       const fileKey = `reports/${input.clientSlug}/${nanoid()}-${input.filename}`;
@@ -108,6 +112,9 @@ export const reportsRouter = router({
         clientId,
         reportType,
         filename: input.filename,
+        mimeType: input.mimeType,
+        fileSizeBytes: buffer.length,
+        fileHash,
         uploadedBy: ctx.user.id,
         storageUrl,
         parsedData: parsedData as Record<string, unknown>,
@@ -115,6 +122,21 @@ export const reportsRouter = router({
       });
 
       const reportId = Number((inserted as unknown as { insertId: number }).insertId);
+
+      // Log the upload for the audit trail
+      await db.insert(accessLog).values({
+        userId: ctx.user.id,
+        clientId,
+        action: "upload",
+        detail: {
+          reportId,
+          reportType,
+          filename: input.filename,
+          fileSizeBytes: buffer.length,
+          fileHash,
+          wasSuperseded,
+        },
+      }).catch(() => { /* non-fatal */ });
 
       return {
         id: reportId,
