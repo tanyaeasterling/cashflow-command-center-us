@@ -1,86 +1,103 @@
-import type { ProfitLossData, LineItem } from "../../shared/types/reports";
+import type { ProfitLossData } from "../../shared/types/reports";
+import { parseQBOAmount } from "./parseCSV";
 
-export function parseProfitLoss(lines: string[]): ProfitLossData {
-  const result: ProfitLossData = {
-    periodStart: '',
-    periodEnd: '',
-    basis: 'Accrual',
-    income: [],
-    totalIncome: 0,
-    costOfGoods: [],
-    totalCOGS: 0,
-    grossProfit: 0,
-    grossMargin: 0,
-    expenses: [],
-    totalExpenses: 0,
-    netIncome: 0,
-    netMargin: 0,
+// CaulCo QBO Caribbean P&L format:
+// Row 1: "Profit and Loss,"
+// Row 2: "CaulCo Inc,"
+// Row 3: date range e.g. "1 January, 2025-31 March, 2026,"
+// Row 5: ",Total"  <- headers (account name column UNNAMED)
+// Section headers: "Income,", "Cost of Sales,", "Expenses,"
+// "Total for X" rows are subtotals
+// Key totals: "Total for Income", "Total for Cost of Sales", "Total for Expenses"
+// "Net Income" or "Profit for the year" at bottom
+
+export function parseProfitLoss(rows: Record<string, string>[]): ProfitLossData {
+  let totalIncome = 0;
+  let totalCOGS = 0;
+  let grossProfit = 0;
+  let totalExpenses = 0;
+  let netIncome = 0;
+  let periodLabel = '';
+
+  const incomeItems: { name: string; amount: number }[] = [];
+  const cogsItems: { name: string; amount: number }[] = [];
+  const expenseItems: { name: string; amount: number }[] = [];
+
+  let section: 'income' | 'cogs' | 'expenses' | 'none' = 'none';
+
+  for (const row of rows) {
+    const keys = Object.keys(row);
+    const nameKey = keys.find(k => k !== 'Total' && k !== 'total') ?? keys[0] ?? '';
+    const name = (row[nameKey] ?? '').trim();
+    const rawAmount = row['Total'] ?? row['total'] ?? '';
+    const amount = rawAmount.trim() ? parseQBOAmount(rawAmount) : null;
+
+    if (!name) continue;
+
+    // Capture period
+    if (/^\d+ (January|February|March|April|May|June|July|August|September|October|November|December)/i.test(name)) {
+      periodLabel = name;
+      continue;
+    }
+
+    // Skip metadata rows
+    if (/^Profit and Loss|^CaulCo|^Monday|^Tuesday|^Wednesday|^Thursday|^Friday|^Saturday|^Sunday/i.test(name)) continue;
+
+    // Key totals
+    if (/^Total for Income|^Total Income/i.test(name) && amount !== null) { totalIncome = Math.abs(amount); continue; }
+    if (/^Total for Cost of Sales|^Total COGS|^Total Cost of Goods/i.test(name) && amount !== null) { totalCOGS = Math.abs(amount); continue; }
+    if (/^Gross Profit/i.test(name) && amount !== null) { grossProfit = amount; continue; }
+    if (/^Total for Expenses|^Total Expenses|^Total Operating/i.test(name) && amount !== null) { totalExpenses = Math.abs(amount); continue; }
+    if (/^Net (Income|Profit|Loss)|^Profit for the (year|period)|^Net Earnings/i.test(name) && amount !== null) { netIncome = amount; continue; }
+
+    // Skip other subtotals
+    if (/^Total for /i.test(name)) continue;
+
+    // Section detection
+    if (/^Income$/i.test(name)) { section = 'income'; continue; }
+    if (/^Cost of (Sales|Goods)|^COGS/i.test(name)) { section = 'cogs'; continue; }
+    if (/^Expenses?$/i.test(name)) { section = 'expenses'; continue; }
+
+    if (amount === null) continue;
+
+    switch (section) {
+      case 'income':    incomeItems.push({ name, amount }); break;
+      case 'cogs':      cogsItems.push({ name, amount }); break;
+      case 'expenses':  expenseItems.push({ name, amount }); break;
+    }
+  }
+
+  // Compute from items if totals not found
+  if (totalIncome === 0 && incomeItems.length > 0) {
+    totalIncome = incomeItems.reduce((s, r) => s + Math.abs(r.amount), 0);
+  }
+  if (totalCOGS === 0 && cogsItems.length > 0) {
+    totalCOGS = cogsItems.reduce((s, r) => s + Math.abs(r.amount), 0);
+  }
+  if (grossProfit === 0) {
+    grossProfit = totalIncome - totalCOGS;
+  }
+  if (totalExpenses === 0 && expenseItems.length > 0) {
+    totalExpenses = expenseItems.reduce((s, r) => s + Math.abs(r.amount), 0);
+  }
+  if (netIncome === 0) {
+    netIncome = grossProfit - totalExpenses;
+  }
+
+  const grossMargin = totalIncome > 0 ? grossProfit / totalIncome : 0;
+  const netMargin   = totalIncome > 0 ? netIncome   / totalIncome : 0;
+
+  return {
+    periodLabel,
+    totalIncome,
+    totalCOGS,
+    grossProfit,
+    grossMargin,
+    totalExpenses,
+    netIncome,
+    netMargin,
+    incomeItems,
+    cogsItems,
+    expenseItems,
   };
-
-  let section: 'income' | 'cogs' | 'expenses' | null = null;
-
-  for (const line of lines) {
-    if (/cash basis/i.test(line)) result.basis = 'Cash';
-    if (/accrual basis/i.test(line)) result.basis = 'Accrual';
-
-    // Period detection
-    const periodMatch = line.match(/(\w+ \d+,?\s*\d{4})\s*[-–to]+\s*(\w+ \d+,?\s*\d{4})/i);
-    if (periodMatch && !result.periodStart) {
-      result.periodStart = periodMatch[1];
-      result.periodEnd = periodMatch[2];
-    }
-
-    if (/^income|^revenue|^sales/i.test(line) && !/total/i.test(line)) { section = 'income'; continue; }
-    if (/cost of goods|cost of sales/i.test(line) && !/total/i.test(line)) { section = 'cogs'; continue; }
-    if (/^expenses|operating expenses/i.test(line) && !/total/i.test(line)) { section = 'expenses'; continue; }
-
-    if (/total income|total revenue|total sales/i.test(line)) {
-      result.totalIncome = extractAmount(line);
-      continue;
-    }
-    if (/total cost of goods|total cogs/i.test(line)) {
-      result.totalCOGS = extractAmount(line);
-      continue;
-    }
-    if (/gross profit/i.test(line)) {
-      result.grossProfit = extractAmount(line);
-      continue;
-    }
-    if (/total expenses/i.test(line)) {
-      result.totalExpenses = extractAmount(line);
-      continue;
-    }
-    if (/net (income|profit|loss)/i.test(line)) {
-      result.netIncome = extractAmount(line);
-      continue;
-    }
-
-    if (section && extractAmount(line) !== 0) {
-      const item: LineItem = {
-        name: line.replace(/[\d,.()\-$]+/g, '').trim(),
-        amount: extractAmount(line),
-      };
-      if (item.name) {
-        if (section === 'income') result.income.push(item);
-        else if (section === 'cogs') result.costOfGoods.push(item);
-        else if (section === 'expenses') result.expenses.push(item);
-      }
-    }
-  }
-
-  if (result.totalIncome > 0) {
-    result.grossMargin = result.grossProfit / result.totalIncome;
-    result.netMargin = result.netIncome / result.totalIncome;
-  }
-
-  return result;
-}
-
-function extractAmount(line: string): number {
-  const match = line.match(/[\d,]+(\.\d{2})?/g);
-  if (!match) return 0;
-  const lastNum = match[match.length - 1];
-  const isNeg = line.includes('(') || /loss/i.test(line);
-  const val = parseFloat(lastNum.replace(/,/g, ''));
-  return isNeg ? -val : val;
 }
