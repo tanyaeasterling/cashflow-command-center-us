@@ -14,6 +14,20 @@ export const CLIENT_CONFIG = {
   currencySymbol: 'EC$',
   fiscalYearStart: 'January',
 
+  // Does this client have active foreign import orders?
+  // Controls whether the "VAT at Port near zero" CRITICAL alert fires.
+  foreignOrdersActive: true,
+
+  // Does this client operate in a VAT jurisdiction?
+  // Set false for US clients, NIL athletes, and most domestic TEC clients.
+  vatEnabled: true,
+
+  // Client profile controls which tab set and parser suite is active.
+  // 'retail'    = QBO grocery/retail (CaulCo model)
+  // 'medical'   = RCM/claims-based (AAU Medical model)
+  // 'nil-athlete' = income by deal, simplified (W3 model)
+  clientProfile: 'retail' as 'retail' | 'medical' | 'nil-athlete',
+
   profitFirstTargets: {
     'Payables':     { target: 75, note: 'Foreign + Local suppliers' },
     'VAT':          { target: 4,  note: 'Take from Vend sales report' },
@@ -32,15 +46,25 @@ export const CLIENT_CONFIG = {
     'Charity':      { target: 0.5 },
   } as Record<string, { target: number; note?: string }>,
 
+  // ── CORRECTED engagement flags (updated May 2026) ──────────────────────────
+  // Customer D resolved: KeHE Distributors (primary) + MDI — bank display issue,
+  //   not a missing vendor. Wire payments now matched to supplier bills in QBO.
+  // KPM and AMC are controlled intercompany balances (wife's company + Adam's
+  //   sole proprietorship), not arm's-length creditors. IRD documentation risk
+  //   remains — no formal intercompany agreements or repayment schedule in place.
+  // GDB loan: ACB references corrected throughout — this is a Grenada Development
+  //   Bank obligation. XCD 9,945/month debt service unmodeled in Profit First.
   engagementFlags: [
-    'VAT-at-port misallocation — VAT paid on imports being coded to wrong bucket',
+    'VAT-at-port misallocation — VAT paid on imports coded to wrong bucket',
     'Rent bucket at 15% — target is 20% — correction required in redesign',
-    'Payables bucket running negative — root cause: timing gap between PF allocation and supplier payments',
-    'Asset upgrade debt service not modeled in CapEx bucket',
+    'Payables bucket running negative — timing gap between PF allocation and supplier payments',
+    'GDB loan (Grenada Development Bank) XCD 9,945/month not modeled in CapEx bucket',
     'SGU enrollment sensitivity — model 15% revenue reduction scenario',
     'Blenda Ba AR — $15,610 in 91+ days — collections action required',
     'VAT Suspense account $30,011 — forensic trace required',
     'Stamp Tax provision $57,383 vs $16,528 allocated — $30,855 shortfall',
+    'KPM ($587,767) and AMC ($253,958) are intercompany balances — IRD documentation risk',
+    'KeHE Distributors and MDI identified as Customer D — match wires to QBO supplier bills',
   ],
 
   ratioThresholds: {
@@ -60,7 +84,39 @@ export const CLIENT_CONFIG = {
     bookkeeper: { upload: true,  download: false, stressTest: false, viewAlerts: true,  manageUsers: false },
     accountant: { upload: false, download: true,  stressTest: false, viewAlerts: true,  manageUsers: false },
   } as Record<string, { upload: boolean; download: boolean; stressTest: boolean; viewAlerts: boolean; manageUsers: boolean }>,
+
+  // ── Tier-based tab visibility ────────────────────────────────────────────────
+  // 'delivery' tabs are included in the base $3,500 engagement package.
+  // 'retainer' tabs unlock on upgrade. Shown with a lock icon until upgraded.
+  // After 90 days on delivery tier, a soft-expiration banner appears.
+  tierTabs: {
+    delivery: [
+      'overview',
+      'cash',
+      'profit-first',
+      'alerts',      // rebranded as Leak Locator
+      'reports',
+      'settings',
+    ],
+    retainer: [
+      'overview',
+      'cash',
+      'profit-first',
+      'ar-aging',
+      'ap-aging',
+      'vat',
+      'inventory',
+      'real-revenue',
+      'debt-service',
+      'stress-test',
+      'alerts',
+      'reports',
+      'settings',
+    ],
+  },
 };
 
 export type ClientConfig = typeof CLIENT_CONFIG;
 export type TecRole = 'admin' | 'owner' | 'bookkeeper' | 'accountant';
+export type ClientTier = 'delivery' | 'retainer';
+export type ClientProfile = 'retail' | 'medical' | 'nil-athlete';
