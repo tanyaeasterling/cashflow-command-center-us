@@ -15,11 +15,16 @@ import type {
 } from "../../../shared/types/reports";
 import type { Alert } from "../../../shared/types/alerts";
 
+// PLByMonth, PLComparison, SupplierBalance use generic parsed shapes
+// until dedicated type interfaces are added to shared/types/reports.ts
+type PLByMonthData = { columns: string[]; rows: Record<string, unknown>[] };
+type PLComparisonData = { columns: string[]; rows: Record<string, unknown>[] };
+type SupplierBalanceData = { rows: Record<string, unknown>[]; total: number };
+
 interface ReportStore {
-  // Uploaded files registry
   uploadedFiles: UploadedFile[];
 
-  // Parsed report data by type
+  // Core report slots
   balanceSheet: BalanceSheetData | null;
   profitLoss: ProfitLossData | null;
   arAging: ARAgingData | null;
@@ -31,10 +36,12 @@ interface ReportStore {
   cashFlows: CashFlowsData | null;
   bankStatement: BankStatementData | null;
 
-  // Generated alerts
-  alerts: Alert[];
+  // Previously orphaned — now wired
+  plByMonth: PLByMonthData | null;
+  plComparison: PLComparisonData | null;
+  supplierBalance: SupplierBalanceData | null;
 
-  // Duplicate detection state
+  alerts: Alert[];
   duplicateBanner: { reportType: ReportType; oldFilename: string } | null;
 
   // Actions
@@ -58,6 +65,9 @@ export const useReportStore = create<ReportStore>((set, get) => ({
   salesByProduct: null,
   cashFlows: null,
   bankStatement: null,
+  plByMonth: null,
+  plComparison: null,
+  supplierBalance: null,
   alerts: [],
   duplicateBanner: null,
 
@@ -65,7 +75,6 @@ export const useReportStore = create<ReportStore>((set, get) => ({
     const existing = get().uploadedFiles.find(f => f.reportType === type);
 
     set(state => {
-      // Replace existing file entry or append new one
       const newFiles = existing
         ? state.uploadedFiles.map(f => f.reportType === type ? file : f)
         : [...state.uploadedFiles, file];
@@ -80,10 +89,11 @@ export const useReportStore = create<ReportStore>((set, get) => ({
       };
     });
 
-    // Auto-dismiss duplicate banner after 5 seconds
     if (existing) {
       setTimeout(() => {
-        set(state => state.duplicateBanner?.reportType === type ? { duplicateBanner: null } : {});
+        set(state =>
+          state.duplicateBanner?.reportType === type ? { duplicateBanner: null } : {}
+        );
       }, 5000);
     }
   },
@@ -98,41 +108,49 @@ export const useReportStore = create<ReportStore>((set, get) => ({
 
   setAlerts: (alerts) => set({ alerts }),
 
-  resolveAlert: (id) => set(state => ({
-    alerts: state.alerts.map(a => a.id === id ? { ...a, resolved: true } : a),
-  })),
+  resolveAlert: (id) =>
+    set(state => ({
+      alerts: state.alerts.map(a => a.id === id ? { ...a, resolved: true } : a),
+    })),
 
   clearDuplicateBanner: () => set({ duplicateBanner: null }),
 
-  clearAll: () => set({
-    uploadedFiles: [],
-    balanceSheet: null,
-    profitLoss: null,
-    arAging: null,
-    apAging: null,
-    vatDetail: null,
-    vatSummary: null,
-    profitFirst: null,
-    salesByProduct: null,
-    cashFlows: null,
-    bankStatement: null,
-    alerts: [],
-    duplicateBanner: null,
-  }),
+  clearAll: () =>
+    set({
+      uploadedFiles: [],
+      balanceSheet: null,
+      profitLoss: null,
+      arAging: null,
+      apAging: null,
+      vatDetail: null,
+      vatSummary: null,
+      profitFirst: null,
+      salesByProduct: null,
+      cashFlows: null,
+      bankStatement: null,
+      plByMonth: null,
+      plComparison: null,
+      supplierBalance: null,
+      alerts: [],
+      duplicateBanner: null,
+    }),
 }));
 
 function getReportKey(type: ReportType): keyof ReportStore | null {
   const map: Partial<Record<ReportType, keyof ReportStore>> = {
-    BalanceSheet: 'balanceSheet',
-    ProfitLoss: 'profitLoss',
-    ARaging: 'arAging',
-    APaging: 'apAging',
-    VATDetail: 'vatDetail',
-    VATSummary: 'vatSummary',
-    ProfitFirst: 'profitFirst',
-    SalesByProduct: 'salesByProduct',
-    CashFlows: 'cashFlows',
-    BankStatement: 'bankStatement',
+    BalanceSheet:    'balanceSheet',
+    ProfitLoss:      'profitLoss',
+    ARaging:         'arAging',
+    APaging:         'apAging',
+    VATDetail:       'vatDetail',
+    VATSummary:      'vatSummary',
+    ProfitFirst:     'profitFirst',
+    SalesByProduct:  'salesByProduct',
+    CashFlows:       'cashFlows',
+    BankStatement:   'bankStatement',
+    PLByMonth:       'plByMonth',
+    PLComparison:    'plComparison',
+    SupplierBalance: 'supplierBalance',
   };
   return map[type] ?? null;
 }
