@@ -1,15 +1,16 @@
 import type { APAgingData, APAgingRow } from "../../shared/types/reports";
 import { parseQBOAmount } from "./parseCSV";
 
-// Same Caribbean QBO format as AR Aging:
-// - "Ageing" spelling
-// - First column unnamed (vendor name)
-// - Columns: [blank], CURRENT, 1 - 30, 31 - 60, 61 - 90, 91 AND OVER, Total
+// CaulCo QBO Caribbean A/P Aging format:
+// Row 1: "A/P Ageing Summary Report"
+// Row 2: "CaulCo Inc"
+// Row 3: "As of 31 Mar, 2026"
+// Row 5: [blank], CURRENT, 1 - 30, 31 - 60, 61 - 90, 91 AND OVER, Total
 
 export function parseAPaging(rows: Record<string, string>[]): APAgingData {
   const agingRows: APAgingRow[] = [];
   let totals: APAgingRow = {
-    vendor: 'TOTAL',
+    supplier: 'TOTAL',
     current: 0, days1to30: 0, days31to60: 0,
     days61to90: 0, days91plus: 0, total: 0,
     isTotal: true,
@@ -25,22 +26,17 @@ export function parseAPaging(rows: Record<string, string>[]): APAgingData {
       row[''] ??
       Object.values(row)[0] ??
       '';
-
     if (!name || !name.trim()) continue;
-
     const trimmed = name.trim();
-    if (/^CaulCo|^As of|^Monday|^Tuesday|^Wednesday|^Thursday|^Friday|^Saturday|^Sunday/i.test(trimmed)) continue;
-    if (/^A\/P Ag(e?)ing/i.test(trimmed)) continue;
 
-    if (/^As of/i.test(trimmed)) {
-      asOfDate = trimmed;
-      continue;
-    }
+    if (/^CaulCo|^Monday|^Tuesday|^Wednesday|^Thursday|^Friday|^Saturday|^Sunday/i.test(trimmed)) continue;
+    if (/^A\/P Ag(e?)ing/i.test(trimmed)) continue;
+    if (/^As of/i.test(trimmed)) { asOfDate = trimmed; continue; }
 
     const isTotal = /^TOTAL$/i.test(trimmed);
 
     const agingRow: APAgingRow = {
-      vendor:     trimmed,
+      supplier:   trimmed,
       current:    parseQBOAmount(row['CURRENT'] ?? row['Current'] ?? row['current'] ?? '0'),
       days1to30:  parseQBOAmount(row['1 - 30'] ?? row['1-30'] ?? '0'),
       days31to60: parseQBOAmount(row['31 - 60'] ?? row['31-60'] ?? '0'),
