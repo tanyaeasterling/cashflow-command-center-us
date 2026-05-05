@@ -29,6 +29,7 @@ export function parseBalanceSheet(rows: Record<string, string>[]): BalanceSheetD
   let totalEquity = 0;
   let asOfDate = '';
   let basis: 'Cash' | 'Accrual' = 'Cash';
+  let cashOnHand = 0;
 
   let section: 'current_assets' | 'fixed_assets' | 'other_assets' | 'current_liabilities' | 'longterm_liabilities' | 'equity' | 'none' = 'none';
 
@@ -39,18 +40,28 @@ export function parseBalanceSheet(rows: Record<string, string>[]): BalanceSheetD
     if (/accrual/i.test(name)) { basis = 'Accrual'; continue; }
     if (/^Balance Sheet|^CaulCo|^Monday|^Tuesday|^Wednesday|^Thursday|^Friday|^Saturday|^Sunday/i.test(name)) continue;
 
-    if (/^Total Assets$/i.test(name) && amount !== null) { totalAssets = amount; continue; }
-    if (/^Total Liabilities$/i.test(name) && amount !== null) { totalLiabilities = amount; continue; }
-    if (/^Total Equity|^Total Owner|^Net Assets/i.test(name) && amount !== null) { totalEquity = amount; continue; }
+    // Grand totals
+    if (/^Total for Assets|^Total Assets$/i.test(name) && amount !== null) { totalAssets = amount; continue; }
+    if (/^Total for Liabilities|^Total Liabilities$/i.test(name) && amount !== null) { totalLiabilities = amount; continue; }
+    if (/^Total for.*Equity|^Total Equity$/i.test(name) && amount !== null) { totalEquity = amount; continue; }
+
+    // Capture BANK total as cash on hand
+    if (/^Total for BANK$/i.test(name) && amount !== null) {
+      cashOnHand = amount;
+      continue;
+    }
+
+    // Skip all "Total for X" subtotals
     if (/^Total for /i.test(name)) continue;
 
+    // Section detection
     if (/^Current Assets$/i.test(name)) { section = 'current_assets'; continue; }
     if (/^Assets$/i.test(name)) { section = 'current_assets'; continue; }
-    if (/^Non-?current Assets|^Fixed Assets|^Long.?term Assets/i.test(name)) { section = 'fixed_assets'; continue; }
-    if (/^Other Assets/i.test(name)) { section = 'other_assets'; continue; }
-    if (/^Current Liabilities$/i.test(name)) { section = 'current_liabilities'; continue; }
-    if (/^Liabilities$/i.test(name)) { section = 'current_liabilities'; continue; }
-    if (/^Non-?current Liabilities|^Long.?term Liabilities/i.test(name)) { section = 'longterm_liabilities'; continue; }
+    if (/^Long.?term [Aa]ssets|^Non.?current [Aa]ssets|^Fixed [Aa]ssets/i.test(name)) { section = 'fixed_assets'; continue; }
+    if (/^Other [Aa]ssets/i.test(name)) { section = 'other_assets'; continue; }
+    if (/^Current [Ll]iabilities$/i.test(name)) { section = 'current_liabilities'; continue; }
+    if (/^Liabilities/i.test(name)) { section = 'current_liabilities'; continue; }
+    if (/^Non.?current [Ll]iabilities|^Long.?term [Ll]iabilities/i.test(name)) { section = 'longterm_liabilities'; continue; }
     if (/^Equity|^Owner|^Shareholder/i.test(name)) { section = 'equity'; continue; }
 
     if (amount === null) continue;
@@ -73,6 +84,11 @@ export function parseBalanceSheet(rows: Record<string, string>[]): BalanceSheetD
   }
   if (totalEquity === 0) {
     totalEquity = equityItems.reduce((s, r) => s + r.amount, 0);
+  }
+
+  // Inject a synthetic "Cash on Hand" entry so components can find it via /cash/i
+  if (cashOnHand !== 0 && !currentAssets.some(a => /cash|bank/i.test(a.name))) {
+    currentAssets.unshift({ name: 'Cash on Hand (Bank)', amount: cashOnHand });
   }
 
   return {
