@@ -24,17 +24,18 @@ export function VATForensics() {
   const vatPaid = vatSummary?.vatPaid ?? 0;
   const netVATDue = vatSummary?.netVATDue ?? 0;
 
-  const vatBSAccount = balanceSheet?.liabilities.currentLiabilities.find(l => /vat/i.test(l.name))?.amount ?? 0;
+  // FIXED: safe guard on currentLiabilities which may be undefined from parser
+  const currentLiabilities = balanceSheet?.liabilities?.currentLiabilities ?? [];
+  const vatBSAccount = currentLiabilities.find(l => /vat/i.test(l.name))?.amount ?? 0;
   const allocationGap = vatCollected - vatBSAccount;
 
-  // Forensic flags
   const flags = [
     {
       label: "VAT Suspense Account",
       value: formatCurrency(vatSuspense),
       status: vatSuspense > 1000 ? 'critical' : 'healthy',
       detail: vatSuspense > 1000
-        ? "Balance requires full forensic trace — likely misallocated import VAT"
+        ? "Balance requires full forensic trace - likely misallocated import VAT"
         : "No significant suspense balance",
     },
     {
@@ -42,7 +43,7 @@ export function VATForensics() {
       value: formatCurrency(vatAtPort),
       status: vatAtPort < 100 ? 'critical' : 'healthy',
       detail: vatAtPort < 100
-        ? "Near zero — VAT paid on imports likely coded to wrong bucket"
+        ? "Near zero - VAT paid on imports likely coded to wrong bucket"
         : "Import VAT appears correctly allocated",
     },
     {
@@ -50,48 +51,30 @@ export function VATForensics() {
       value: formatCurrency(Math.abs(allocationGap)),
       status: Math.abs(allocationGap) > vatBSAccount * 0.2 ? 'warning' : 'healthy',
       detail: allocationGap > 0
-        ? `VAT collected (${formatCurrency(vatCollected)}) exceeds BS account (${formatCurrency(vatBSAccount)}) — review allocation`
+        ? `VAT collected (${formatCurrency(vatCollected)}) exceeds BS account (${formatCurrency(vatBSAccount)}) - review allocation`
         : "Allocation appears consistent with Balance Sheet",
     },
   ];
 
   return (
     <div className="space-y-6">
-      {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KPICard
-          title="VAT Collected"
-          value={formatCurrency(vatCollected, true)}
-          status="neutral"
-          icon={<Receipt size={18} />}
-        />
-        <KPICard
-          title="VAT Paid (Input)"
-          value={formatCurrency(vatPaid, true)}
-          status="neutral"
-        />
+        <KPICard title="VAT Collected" value={formatCurrency(vatCollected, true)} status="neutral" icon={<Receipt size={18} />} />
+        <KPICard title="VAT Paid (Input)" value={formatCurrency(vatPaid, true)} status="neutral" />
         <KPICard
           title="VAT at Port"
           value={formatCurrency(vatAtPort, true)}
           status={vatAtPort < 100 ? 'critical' : 'healthy'}
           subtitle={vatAtPort < 100 ? "Possible misallocation" : "On target"}
         />
-        <KPICard
-          title="Net VAT Due"
-          value={formatCurrency(netVATDue, true)}
-          status={netVATDue > 0 ? 'warning' : 'healthy'}
-        />
+        <KPICard title="Net VAT Due" value={formatCurrency(netVATDue, true)} status={netVATDue > 0 ? 'warning' : 'healthy'} />
       </div>
 
-      {/* VAT Suspense alert */}
       {vatSuspense > 1000 && (
-        <div
-          className="rounded-xl p-4 border"
-          style={{ background: "oklch(97% 0.02 25)", borderColor: "oklch(85% 0.08 25)" }}
-        >
+        <div className="rounded-xl p-4 border" style={{ background: "oklch(97% 0.02 25)", borderColor: "oklch(85% 0.08 25)" }}>
           <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: "var(--tec-red)" }}>
             <AlertTriangle size={14} />
-            CRITICAL: VAT Suspense Account — {formatCurrency(vatSuspense)}
+            CRITICAL: VAT Suspense Account - {formatCurrency(vatSuspense)}
           </h3>
           <p className="text-sm" style={{ color: "oklch(40% 0.08 25)" }}>
             The VAT Suspense account has a balance of {formatCurrency(vatSuspense)}. This requires a full forensic trace
@@ -101,7 +84,7 @@ export function VATForensics() {
           <div className="mt-3 space-y-1">
             <p className="text-xs font-semibold" style={{ color: "var(--tec-red)" }}>Recommended Actions:</p>
             <ol className="text-xs space-y-1 list-decimal list-inside" style={{ color: "oklch(40% 0.08 25)" }}>
-              <li>Run VAT Tax Detail report for full period — upload here</li>
+              <li>Run VAT Tax Detail report for full period - upload here</li>
               <li>Filter for transactions coded to VAT Suspense</li>
               <li>Reclassify import VAT entries to correct VAT bucket</li>
               <li>Reconcile suspense account to zero</li>
@@ -110,7 +93,6 @@ export function VATForensics() {
         </div>
       )}
 
-      {/* Forensic Flags */}
       <div>
         <h2 className="text-lg mb-3" style={{ fontFamily: "'DM Serif Display', serif", color: "var(--tec-purple-deep)" }}>
           Forensic Audit Flags
@@ -123,11 +105,7 @@ export function VATForensics() {
               <div
                 key={i}
                 className="rounded-xl border p-4 flex items-start gap-3"
-                style={{
-                  background: "oklch(100% 0 0)",
-                  borderColor: "oklch(88% 0.005 300)",
-                  borderLeft: `4px solid ${color}`,
-                }}
+                style={{ background: "oklch(100% 0 0)", borderColor: "oklch(88% 0.005 300)", borderLeft: `4px solid ${color}` }}
               >
                 <Icon size={18} style={{ color, flexShrink: 0, marginTop: 2 }} />
                 <div className="flex-1">
@@ -143,7 +121,6 @@ export function VATForensics() {
         </div>
       </div>
 
-      {/* VAT Detail rows */}
       {vatDetail && vatDetail.rows.length > 0 && (
         <div className="bg-white rounded-xl border border-border p-4 shadow-sm">
           <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--tec-purple-deep)" }}>
@@ -154,7 +131,7 @@ export function VATForensics() {
               <thead>
                 <tr className="border-b border-border">
                   {['Date', 'Type', 'Name', 'Tax Code', 'Tax Amount', 'Taxable Amount'].map(h => (
-                    <th key={h} className={`py-2 px-2 font-semibold ${h === 'Date' || h === 'Type' || h === 'Name' ? 'text-left' : 'text-right'}`}
+                    <th key={h} className={`py-2 px-2 font-semibold ${['Date','Type','Name'].includes(h) ? 'text-left' : 'text-right'}`}
                       style={{ color: "oklch(55% 0.06 300)" }}>
                       {h}
                     </th>
