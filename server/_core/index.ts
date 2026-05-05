@@ -6,7 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes, seedAdminUser } from "./oauth";
-import { appRouter } from "../routers";
+import { appRouter } from "../routers/index.ts";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { getLocalFilePath } from "../storage";
