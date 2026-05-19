@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useReportHydration } from "@/hooks/useReportHydration";
 import { Header } from "@/components/layout/Header";
 import { TabBar } from "@/components/layout/TabBar";
 import { LoadedFilesBar } from "@/components/layout/LoadedFilesBar";
@@ -59,6 +60,9 @@ export default function Dashboard() {
   if (!isAuthenticated) {
     return <Login />;
   }
+
+  // Hydrate report store from database on login
+  useReportHydration();
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "oklch(97% 0.005 300)" }}>
