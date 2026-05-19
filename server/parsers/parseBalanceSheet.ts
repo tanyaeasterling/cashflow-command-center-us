@@ -86,9 +86,17 @@ export function parseBalanceSheet(rows: Record<string, string>[]): BalanceSheetD
     totalEquity = equityItems.reduce((s, r) => s + r.amount, 0);
   }
 
-  // Inject a synthetic "Cash on Hand" entry so components can find it via /cash/i
-  if (cashOnHand !== 0 && !currentAssets.some(a => /cash|bank/i.test(a.name))) {
-    currentAssets.unshift({ name: 'Cash on Hand (Bank)', amount: cashOnHand });
+  // Inject a synthetic "Cash on Hand" entry so components can find it via /cash/i.
+  // The BANK section header row may already be in currentAssets with amount:0,
+  // which would block the regex check. Remove it first, then inject the real value.
+  if (cashOnHand !== 0) {
+    const bankHeaderIdx = currentAssets.findIndex(
+      a => /^BANK$/i.test(a.name) && a.amount === 0
+    );
+    if (bankHeaderIdx !== -1) currentAssets.splice(bankHeaderIdx, 1);
+    if (!currentAssets.some(a => /cash on hand|cash in bank/i.test(a.name))) {
+      currentAssets.unshift({ name: 'Cash on Hand (Bank)', amount: cashOnHand });
+    }
   }
 
   return {
