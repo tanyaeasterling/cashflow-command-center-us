@@ -46,6 +46,9 @@ function TabContent() {
 export default function Dashboard() {
   const { loading, isAuthenticated } = useAuth();
 
+  // Must be called before any early returns to satisfy React hooks rules
+  useReportHydration();
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--tec-purple-deep)" }}>
@@ -60,9 +63,6 @@ export default function Dashboard() {
   if (!isAuthenticated) {
     return <Login />;
   }
-
-  // Hydrate report store from database on login
-  useReportHydration();
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "oklch(97% 0.005 300)" }}>
