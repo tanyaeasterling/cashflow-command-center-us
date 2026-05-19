@@ -1,17 +1,18 @@
 import { useReportStore } from "@/store/useReportStore";
 import { KPICard } from "@/components/ui/KPICard";
 import { formatCurrency, formatPercent } from "@/lib/formatters";
-import { CreditCard, AlertTriangle } from "lucide-react";
+import { CreditCard } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
 
-// Demo debt schedule — in production this would come from a parsed report
+// CaulCo confirmed debt obligations (sourced from GDB loan doc No. 20252356 and Balance Sheet Mar 31, 2026)
+// GDB Loan: Note Date May 15 2025, disbursed Oct 30 2025, 60-month term at 5.25%
+// Co-op Bank vehicle loan for T1999 — monthly payment amount pending confirmation
+// KPM ($591K) and AMC ($185K) are intercompany balances — excluded from debt service schedule
 const DEMO_DEBTS = [
-  { name: "Business Loan – CIBC", balance: 125000, monthlyPayment: 3200, interestRate: 0.065, remainingMonths: 39, type: "Term Loan" },
-  { name: "Line of Credit – RBC", balance: 45000, monthlyPayment: 900, interestRate: 0.085, remainingMonths: 60, type: "LOC" },
-  { name: "Equipment Finance", balance: 28000, monthlyPayment: 750, interestRate: 0.072, remainingMonths: 37, type: "Equipment" },
-  { name: "Merchant Cash Advance", balance: 18500, monthlyPayment: 2100, interestRate: 0.38, remainingMonths: 9, type: "MCA" },
+  { name: "GDB Loan – No. 20252356", balance: 470000, monthlyPayment: 9945, interestRate: 0.0525, remainingMonths: 54, type: "Term Loan" },
+  { name: "Co-op Bank – Vehicle T1999", balance: 87030, monthlyPayment: 1800, interestRate: 0.065, remainingMonths: 52, type: "Vehicle" },
 ];
 
 export function DebtService() {
@@ -30,8 +31,6 @@ export function DebtService() {
     Monthly: d.monthlyPayment,
   }));
 
-  const mcaDebt = DEMO_DEBTS.find(d => d.type === 'MCA');
-
   return (
     <div className="space-y-6">
       <div
@@ -39,25 +38,8 @@ export function DebtService() {
         style={{ background: "oklch(96% 0.02 240)", borderColor: "oklch(85% 0.06 240)", color: "oklch(40% 0.10 240)" }}
       >
         <CreditCard size={12} />
-        Debt schedule shown is illustrative. Upload a loan schedule or bank statement to populate with live data.
+        Debt schedule reflects confirmed obligations: GDB Loan No. 20252356 and Co-op Bank vehicle loan as of March 31, 2026. Co-op Bank monthly payment is estimated. KPM and AMC intercompany balances are excluded from debt service.
       </div>
-
-      {/* MCA alert */}
-      {mcaDebt && mcaDebt.interestRate > 0.3 && (
-        <div
-          className="rounded-xl p-4 border"
-          style={{ background: "oklch(97% 0.02 25)", borderColor: "oklch(85% 0.08 25)" }}
-        >
-          <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: "var(--tec-red)" }}>
-            <AlertTriangle size={14} />
-            HIGH-COST DEBT: Merchant Cash Advance — {formatPercent(mcaDebt.interestRate)} effective rate
-          </h3>
-          <p className="text-sm" style={{ color: "oklch(40% 0.08 25)" }}>
-            MCA at {formatPercent(mcaDebt.interestRate)} effective annual rate. Balance: {formatCurrency(mcaDebt.balance)}.
-            Monthly payment: {formatCurrency(mcaDebt.monthlyPayment)}. Priority: refinance or pay off within {mcaDebt.remainingMonths} months.
-          </p>
-        </div>
-      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPICard
