@@ -56,7 +56,7 @@ export const reportsRouter = router({
           parsedData = dispatchCSVParser(reportType, csvResult.rows);
         } else if (input.filename.match(/\.(xlsx|xls)$/i)) {
           const excelResult = parseExcelFile(buffer);
-          parsedData = dispatchExcelParser(reportType, excelResult);
+          parsedData = dispatchExcelParser(reportType, excelResult, buffer);
         } else if (input.mimeType.includes("pdf") || input.filename.endsWith(".pdf")) {
           const pdfResult = await parsePDFFile(buffer);
           parsedData = dispatchTextParser(reportType, pdfResult.lines);
@@ -313,12 +313,13 @@ function dispatchCSVParser(reportType: string, rows: Record<string, string>[]): 
 
 function dispatchExcelParser(
   reportType: string,
-  result: ReturnType<typeof parseExcelFile>
+  result: ReturnType<typeof parseExcelFile>,
+  rawBuffer?: Buffer,
 ): unknown {
   const firstSheet = result.sheets[0];
   const rawRows = (firstSheet?.rows ?? []) as Record<string, string>[];
   switch (reportType) {
-    case "ProfitFirst":     return parseProfitFirst(result.sheets);
+    case "ProfitFirst":     return parseProfitFirst(result.sheets, rawBuffer);
     case "BalanceSheet":    return parseBalanceSheet(rawRows);
     case "ProfitLoss":      return parseProfitLoss(rawRows);
     case "ARaging":         return parseARaging(rawRows);
