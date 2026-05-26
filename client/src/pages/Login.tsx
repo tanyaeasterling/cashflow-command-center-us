@@ -85,7 +85,7 @@ export default function Login() {
             className="text-2xl font-semibold tracking-tight"
             style={{ fontFamily: "'DM Serif Display', serif", color: "var(--tec-purple-deep, #1a0a2e)" }}
           >
-            CaulCo Cashflow
+            Cashflow Command Center
           </h1>
           <p className="text-sm" style={{ color: "oklch(55% 0.06 300)" }}>
             Tanya Easterling Consulting
