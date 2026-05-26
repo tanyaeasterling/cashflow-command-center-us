@@ -3,8 +3,8 @@
 // Do not edit caulsConfig.ts — it remains active for the CaulCo deployment.
 
 export const CLIENT_CONFIG = {
-  clientName: '[CLIENT_BUSINESS_NAME]',
-  clientSlug: '[client-slug]',
+  clientName: 'The Brunch Spot',
+  clientSlug: 'brunch-spot',
   ownerName: '[OWNER_NAME]',
   consultantName: 'Tanya Easterling',
   firmName: 'Tanya Easterling Consulting',
