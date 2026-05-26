@@ -25,7 +25,7 @@ async function getClientId(slug: string): Promise<number | null> {
 export const usersRouter = router({
   // List all users for a client (admin only)
   list: adminProcedure
-    .input(z.object({ clientSlug: z.string().default('cauls') }))
+    .input(z.object({ clientSlug: z.string().default(CLIENT_CONFIG.clientSlug) }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) return [];
@@ -62,7 +62,7 @@ export const usersRouter = router({
 
   // Get current user's profile and permissions
   me: protectedProcedure
-    .input(z.object({ clientSlug: z.string().default('cauls') }))
+    .input(z.object({ clientSlug: z.string().default(CLIENT_CONFIG.clientSlug) }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       const clientId = await getClientId(input.clientSlug);
@@ -99,7 +99,7 @@ export const usersRouter = router({
   updateRole: adminProcedure
     .input(z.object({
       userId: z.number(),
-      clientSlug: z.string().default('cauls'),
+      clientSlug: z.string().default(CLIENT_CONFIG.clientSlug),
       tecRole: z.enum(['admin', 'owner', 'bookkeeper', 'accountant']),
     }))
     .mutation(async ({ input }) => {

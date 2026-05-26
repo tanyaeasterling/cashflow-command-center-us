@@ -34,7 +34,7 @@ function UserManagement() {
 
   const handleRoleChange = (userId: number, tecRole: 'admin' | 'owner' | 'bookkeeper' | 'accountant') => {
     updateRole.mutate(
-      { userId, clientSlug: 'cauls', tecRole },
+      { userId, clientSlug: CLIENT_CONFIG.clientSlug, tecRole },
       { onSuccess: () => utils.users.list.invalidate() },
     );
   };
