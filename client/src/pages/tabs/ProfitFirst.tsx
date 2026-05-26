@@ -27,14 +27,16 @@ export function ProfitFirst() {
 
   // Build bucket cards with target vs actual
   const bucketCards = Object.entries(CLIENT_CONFIG.profitFirstTargets).map(([name, config]) => {
+    const targetFrac = typeof config === 'number' ? config : (config as { target: number }).target / 100;
     const actual = latestWeek.buckets[name] ?? 0;
-    const targetAmt = totalIncome * (config.target / 100);
+    const targetAmt = totalIncome * targetFrac;
     const actualPct = totalIncome > 0 ? (actual / totalIncome) * 100 : 0;
+    const targetPct = targetFrac * 100;
     const variance = actual - targetAmt;
-    const variancePct = config.target > 0 ? ((actualPct - config.target) / config.target) * 100 : 0;
+    const variancePct = targetPct > 0 ? ((actualPct - targetPct) / targetPct) * 100 : 0;
     const status = Math.abs(variancePct) <= 5 ? 'healthy' : Math.abs(variancePct) <= 15 ? 'warning' : 'critical';
 
-    return { name, actual, targetAmt, actualPct, config, variance, variancePct, status };
+    return { name, actual, targetAmt, actualPct, targetPct, variance, variancePct, status };
   });
 
   // Income trend chart data
@@ -46,7 +48,7 @@ export function ProfitFirst() {
   // Allocation bar data
   const allocationData = bucketCards
     .filter(b => b.actual !== 0)
-    .map(b => ({ name: b.name.slice(0, 8), actual: b.actualPct, target: b.config.target }));
+    .map(b => ({ name: b.name.slice(0, 8), actual: b.actualPct, target: b.targetPct }));
 
   const statusColor = (s: string) =>
     s === 'healthy' ? "var(--tec-green)" : s === 'warning' ? "var(--tec-amber)" : "var(--tec-red)";
@@ -102,15 +104,10 @@ export function ProfitFirst() {
                 </p>
                 <div className="flex items-center justify-between mt-1">
                   <span className="text-xs" style={{ color: "oklch(55% 0.06 300)" }}>
-                    {b.actualPct.toFixed(1)}% / {b.config.target}%
+                    {b.actualPct.toFixed(1)}% / {b.targetPct.toFixed(0)}%
                   </span>
                   <TrendIcon size={11} style={{ color: statusColor(b.status) }} />
                 </div>
-                {b.config.note && (
-                  <p className="text-xs mt-1 leading-tight" style={{ color: "oklch(60% 0.05 300)" }}>
-                    {b.config.note}
-                  </p>
-                )}
               </div>
             );
           })}

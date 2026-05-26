@@ -42,27 +42,29 @@ export function parseBalanceSheet(rows: Record<string, string>[]): BalanceSheetD
     if (/accrual/i.test(name)) { basis = 'Accrual'; continue; }
     if (/^Balance Sheet|^CaulCo|^Monday|^Tuesday|^Wednesday|^Thursday|^Friday|^Saturday|^Sunday/i.test(name)) continue;
 
-    // Grand totals
-    if (/^Total for Assets|^Total Assets$/i.test(name) && amount !== null) { totalAssets = amount; continue; }
-    if (/^Total for Liabilities|^Total Liabilities$/i.test(name) && amount !== null) { totalLiabilities = amount; continue; }
-    if (/^Total for.*Equity|^Total Equity$/i.test(name) && amount !== null) { totalEquity = amount; continue; }
+    // Grand totals — must be checked before the generic "Total for" skip below
+    if (/^Total for Assets$|^Total Assets$/i.test(name) && amount !== null) { totalAssets = amount; continue; }
+    if (/^Total for Liabilities$|^Total Liabilities$/i.test(name) && amount !== null) { totalLiabilities = amount; continue; }
+    if (/^Total for.+Equity$|^Total Equity$/i.test(name) && amount !== null) { totalEquity = amount; continue; }
 
-    // Capture BANK total as cash on hand
-    if (/^Total for BANK$/i.test(name) && amount !== null) {
+    // Cash on hand — QBO exports "Total for Bank Accounts"; older format uses "Total for BANK"
+    if (/^Total for Bank Accounts$|^Total for BANK$/i.test(name) && amount !== null) {
       cashOnHand = amount;
       continue;
     }
 
-    // Skip all "Total for X" subtotals
+    // Skip all remaining "Total for X" subtotals and the outer "LIABILITIES AND EQUITY" wrapper
     if (/^Total for /i.test(name)) continue;
+    if (/^LIABILITIES AND EQUITY$/i.test(name)) continue;
 
     // Section detection
     if (/^Current Assets$/i.test(name)) { section = 'current_assets'; continue; }
     if (/^Assets$/i.test(name)) { section = 'current_assets'; continue; }
+    if (/^Bank Accounts$/i.test(name)) { section = 'current_assets'; continue; }
     if (/^Long.?term [Aa]ssets|^Non.?current [Aa]ssets|^Fixed [Aa]ssets/i.test(name)) { section = 'fixed_assets'; continue; }
     if (/^Other [Aa]ssets/i.test(name)) { section = 'other_assets'; continue; }
     if (/^Current [Ll]iabilities$/i.test(name)) { section = 'current_liabilities'; continue; }
-    if (/^Liabilities/i.test(name)) { section = 'current_liabilities'; continue; }
+    if (/^Liabilities(?! and Equity)/i.test(name)) { section = 'current_liabilities'; continue; }
     if (/^Non.?current [Ll]iabilities|^Long.?term [Ll]iabilities/i.test(name)) { section = 'longterm_liabilities'; continue; }
     if (/^Equity|^Owner|^Shareholder/i.test(name)) { section = 'equity'; continue; }
 
@@ -96,8 +98,9 @@ export function parseBalanceSheet(rows: Record<string, string>[]): BalanceSheetD
   // The BANK section header row may already be in currentAssets with amount:0,
   // which would block the regex check. Remove it first, then inject the real value.
   if (cashOnHand !== 0) {
+    // Remove any stray header rows (amount 0) that snuck in before the Total was captured
     const bankHeaderIdx = currentAssets.findIndex(
-      a => /^BANK$/i.test(a.name) && a.amount === 0
+      a => /^BANK$|^Bank Accounts$/i.test(a.name) && a.amount === 0
     );
     if (bankHeaderIdx !== -1) currentAssets.splice(bankHeaderIdx, 1);
     if (!currentAssets.some(a => /cash on hand|cash in bank/i.test(a.name))) {
