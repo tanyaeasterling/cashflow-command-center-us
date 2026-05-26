@@ -3,7 +3,7 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { clients } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
-import { CLIENT_CONFIG } from "../../shared/config/caulsConfig";
+import { CLIENT_CONFIG } from "../../shared/config/usConfig";
 
 export const clientsRouter = router({
   // Get client config (merges DB record with static caulsConfig defaults)

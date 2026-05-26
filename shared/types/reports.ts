@@ -47,8 +47,8 @@ export interface BalanceSheetData {
     totalEquity: number;
   };
   pfSubAccounts?: PFSubAccount[];
-  vatSuspense?: number;
-  stampTaxProvision?: number;
+  salesTaxPayable?: number;
+  ownerDraws?: number;
 }
 
 export interface LineItem {

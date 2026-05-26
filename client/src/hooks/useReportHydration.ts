@@ -34,9 +34,9 @@ export function useReportHydration() {
 
       const uploadedFile: UploadedFile = {
         id: nanoid(),
-        filename: report.filename,
+        filename: report.filename ?? 'unknown',
         reportType: report.reportType as ReportType,
-        uploadedAt: report.uploadedAt?.toString() ?? new Date().toISOString(),
+        uploadedAt: report.uploadedAt != null ? report.uploadedAt.toString() : new Date().toISOString(),
         parsedData: report.parsedData,
         dbId: report.id,
       };

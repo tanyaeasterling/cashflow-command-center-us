@@ -18,7 +18,7 @@ export function VATForensics() {
     );
   }
 
-  const vatSuspense = balanceSheet?.vatSuspense ?? 0;
+  const vatSuspense = (balanceSheet as unknown as { vatSuspense?: number })?.vatSuspense ?? 0;
   const vatAtPort = vatSummary?.vatAtPort ?? 0;
   const vatCollected = vatSummary?.vatCollected ?? 0;
   const vatPaid = vatSummary?.vatPaid ?? 0;

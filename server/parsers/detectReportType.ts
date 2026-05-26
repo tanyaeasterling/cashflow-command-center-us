@@ -13,13 +13,15 @@ const FILENAME_PATTERNS: Array<{ pattern: RegExp; type: ReportType }> = [
   { pattern: /profit.?(and|&|loss)|p&l|p_l|income.?statement/i, type: 'ProfitLoss' },
   { pattern: /a[_\-\s]?r.?ag(e?)ing|accounts.?receivable.?ag(e?)ing/i, type: 'ARaging' },
   { pattern: /a[_\-\s]?p.?ag(e?)ing|accounts.?payable.?ag(e?)ing/i,   type: 'APaging' },
-  { pattern: /vat.?detail|tax.?detail/i,  type: 'VATDetail' },
-  { pattern: /vat.?summary|tax.?summary/i, type: 'VATSummary' },
+  // DISABLED for US edition (Caribbean VAT reports — do not delete):
+  // { pattern: /vat.?detail|tax.?detail/i,  type: 'VATDetail' },
+  // { pattern: /vat.?summary|tax.?summary/i, type: 'VATSummary' },
   { pattern: /sales.?by.?product|product.?sales/i, type: 'SalesByProduct' },
   { pattern: /p[&_]?l.?by.?month|monthly.?p[&_]?l/i, type: 'PLByMonth' },
   { pattern: /p[&_]?l.?comparison|comparison/i, type: 'PLComparison' },
-  { pattern: /supplier.?balance|vendor.?balance/i, type: 'SupplierBalance' },
-  { pattern: /bank.?statement|statement.?of.?account/i, type: 'BankStatement' },
+  // DISABLED for US edition (Caribbean-specific — do not delete):
+  // { pattern: /supplier.?balance|vendor.?balance/i, type: 'SupplierBalance' },
+  // { pattern: /bank.?statement|statement.?of.?account/i, type: 'BankStatement' },
   { pattern: /cost.?in|cost.?form/i,      type: 'CostInForm' },
   { pattern: /cash.?flow/i,               type: 'CashFlows' },
   { pattern: /pf.?allocation|weekly.?pf|pf.?week/i, type: 'ProfitFirst' },
@@ -31,14 +33,16 @@ const CONTENT_PATTERNS: Array<{ pattern: RegExp; type: ReportType; weight: numbe
   { pattern: /gross profit|net income|cost of goods sold/i,           type: 'ProfitLoss',   weight: 3 },
   { pattern: /accounts receivable ag(e?)ing|a\/r ag(e?)ing/i,           type: 'ARaging',      weight: 3 },
   { pattern: /accounts payable ag(e?)ing|a\/p ag(e?)ing/i,              type: 'APaging',      weight: 3 },
-  { pattern: /vat detail|tax code|taxable amount/i,                   type: 'VATDetail',    weight: 3 },
-  { pattern: /vat summary|output tax|input tax/i,                     type: 'VATSummary',   weight: 3 },
+  // DISABLED for US edition (Caribbean VAT content patterns — do not delete):
+  // { pattern: /vat detail|tax code|taxable amount/i,                   type: 'VATDetail',    weight: 3 },
+  // { pattern: /vat summary|output tax|input tax/i,                     type: 'VATSummary',   weight: 3 },
   { pattern: /payables.*bucket|vat.*bucket|profit.*bucket/i,          type: 'ProfitFirst',  weight: 3 },
   { pattern: /sales by product|product.*qty.*amount/i,                type: 'SalesByProduct', weight: 3 },
   { pattern: /cash flows from operating|investing activities/i,       type: 'CashFlows',    weight: 3 },
   { pattern: /91\+ days|over 90|91-120/i,                             type: 'ARaging',      weight: 2 },
   { pattern: /current.*1-30.*31-60.*61-90/i,                          type: 'ARaging',      weight: 2 },
-  { pattern: /opening balance|closing balance|debit.*credit.*balance/i, type: 'BankStatement', weight: 2 },
+  // DISABLED for US edition (ACB Caribbean bank statement pattern — do not delete):
+  // { pattern: /opening balance|closing balance|debit.*credit.*balance/i, type: 'BankStatement', weight: 2 },
 ];
 
 export function detectReportType(filename: string, content?: string): DetectionResult {

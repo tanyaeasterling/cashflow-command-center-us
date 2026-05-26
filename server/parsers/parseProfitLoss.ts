@@ -33,14 +33,14 @@ export function parseProfitLoss(rows: Record<string, string>[]): ProfitLossData 
     if (/^Profit and Loss|^CaulCo|^Monday|^Tuesday|^Wednesday|^Thursday|^Friday|^Saturday|^Sunday/i.test(name)) continue;
 
     if (/^Total for Income|^Total Income/i.test(name) && amount !== null) { totalIncome = Math.abs(amount); continue; }
-    if (/^Total for Cost of Sales|^Total COGS|^Total Cost of Goods/i.test(name) && amount !== null) { totalCOGS = Math.abs(amount); continue; }
+    if (/^Total for Cost of (Sales|Goods Sold)|^Total COGS|^Total Cost of Goods/i.test(name) && amount !== null) { totalCOGS = Math.abs(amount); continue; }
     if (/^Gross Profit/i.test(name) && amount !== null) { grossProfit = amount; continue; }
     if (/^Total for Expenses|^Total Expenses|^Total Operating/i.test(name) && amount !== null) { totalExpenses = Math.abs(amount); continue; }
     if (/^Net (Income|Profit|Loss)|^Profit for the (year|period)|^Net Earnings/i.test(name) && amount !== null) { netIncome = amount; continue; }
     if (/^Total for /i.test(name)) continue;
 
     if (/^Income$/i.test(name)) { section = 'income'; continue; }
-    if (/^Cost of (Sales|Goods)|^COGS/i.test(name)) { section = 'cogs'; continue; }
+    if (/^Cost of (Sales|Goods Sold)|^COGS/i.test(name)) { section = 'cogs'; continue; }
     if (/^Expenses?$/i.test(name)) { section = 'expenses'; continue; }
     if (amount === null) continue;
 

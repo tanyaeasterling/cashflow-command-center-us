@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { CLIENT_CONFIG } from "../../../../shared/config/caulsConfig";
+import { CLIENT_CONFIG } from "../../../../shared/config/usConfig";
 import { Settings as SettingsIcon, User, Shield, Building2, Bell, ExternalLink, Users } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -25,7 +25,7 @@ const ROLE_PERMISSIONS: Record<string, { label: string; permissions: string[] }>
 };
 
 function UserManagement() {
-  const { data: userList, isLoading } = trpc.users.list.useQuery({ clientSlug: 'cauls' });
+  const { data: userList, isLoading } = trpc.users.list.useQuery({ clientSlug: CLIENT_CONFIG.clientSlug });
   const updateRole = trpc.users.updateRole.useMutation({
     onSuccess: () => toast.success('Role updated'),
     onError: () => toast.error('Failed to update role'),
@@ -177,7 +177,7 @@ export function Settings() {
             { label: "Currency", value: `${CLIENT_CONFIG.currency} (${CLIENT_CONFIG.currencySymbol})` },
             { label: "Fiscal Year Start", value: CLIENT_CONFIG.fiscalYearStart },
             { label: "Locations", value: CLIENT_CONFIG.locations.join(", ") },
-            { label: "VAT Rate", value: "16%" },
+            { label: `${CLIENT_CONFIG.taxLabel} Rate`, value: CLIENT_CONFIG.taxRate },
             { label: "Gross Margin Target", value: `${(CLIENT_CONFIG.ratioThresholds.grossMargin.healthy * 100).toFixed(0)}%` },
           ].map(({ label, value }) => (
             <div key={label} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
@@ -188,7 +188,7 @@ export function Settings() {
         </div>
         <div className="mt-3 pt-3 border-t border-border">
           <p className="text-xs" style={{ color: "oklch(55% 0.06 300)" }}>
-            Configuration is managed in <code className="px-1 py-0.5 rounded text-xs" style={{ background: "oklch(93% 0.04 310)", color: "var(--tec-purple)" }}>shared/config/caulsConfig.ts</code>.
+            Configuration is managed in <code className="px-1 py-0.5 rounded text-xs" style={{ background: "oklch(93% 0.04 310)", color: "var(--tec-purple)" }}>shared/config/usConfig.ts</code>.
             Contact your TEC administrator to update thresholds or add locations.
           </p>
         </div>
@@ -210,13 +210,21 @@ export function Settings() {
               </tr>
             </thead>
             <tbody>
-              {Object.entries(CLIENT_CONFIG.profitFirstTargets).map(([name, config]) => (
-                <tr key={name} className="border-b border-border/50">
-                  <td className="py-1.5 font-medium">{name}</td>
-                  <td className="py-1.5 text-right" style={{ color: "var(--tec-purple)" }}>{config.target}%</td>
-                  <td className="py-1.5 px-3 text-xs" style={{ color: "oklch(55% 0.06 300)" }}>{config.note ?? "—"}</td>
-                </tr>
-              ))}
+              {Object.entries(CLIENT_CONFIG.profitFirstTargets).map(([name, config]) => {
+                const targetPct = typeof config === 'number'
+                  ? `${(config * 100).toFixed(0)}%`
+                  : `${(config as { target: number }).target}%`;
+                const note = typeof config === 'number'
+                  ? '—'
+                  : ((config as { note?: string }).note ?? '—');
+                return (
+                  <tr key={name} className="border-b border-border/50">
+                    <td className="py-1.5 font-medium">{name}</td>
+                    <td className="py-1.5 text-right" style={{ color: "var(--tec-purple)" }}>{targetPct}</td>
+                    <td className="py-1.5 px-3 text-xs" style={{ color: "oklch(55% 0.06 300)" }}>{note}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

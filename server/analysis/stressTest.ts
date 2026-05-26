@@ -30,6 +30,8 @@ export interface StressTestResult {
   bucketHealth: BucketHealth[];
 }
 
+import { CLIENT_CONFIG } from "../../shared/config/usConfig";
+
 export interface BucketHealth {
   name: string;
   target: number;
@@ -37,23 +39,7 @@ export interface BucketHealth {
   status: 'healthy' | 'warning' | 'critical';
 }
 
-const PF_TARGETS: Record<string, number> = {
-  'Payables': 0.75,
-  'VAT': 0.04,
-  'StampTax': 0.008,
-  'RealRevenue': 0.18,
-  'DebtPaydown': 0.08,
-  'CapEx': 0.05,
-  'Compensation': 0.20,
-  'Operating': 0.15,
-  'Payroll': 0.30,
-  'Rent': 0.20,
-  'Taxes': 0.03,
-  'Vault': 0.01,
-  'Profit': 0.01,
-  'Marketing': 0.015,
-  'Charity': 0.005,
-};
+const PF_TARGETS = CLIENT_CONFIG.profitFirstTargets;
 
 export function runStressTest(inputs: StressTestInputs): StressTestResult {
   const {
@@ -94,9 +80,9 @@ export function runStressTest(inputs: StressTestInputs): StressTestResult {
       expenses: effectiveExpenses,
       netCashFlow,
       cumulativeCash,
-      payablesBucket: effectiveRevenue * PF_TARGETS['Payables'],
-      vatBucket: effectiveRevenue * PF_TARGETS['VAT'],
-      realRevenueBucket: effectiveRevenue * PF_TARGETS['RealRevenue'],
+      payablesBucket: effectiveRevenue * (PF_TARGETS['OperatingExpenses'] ?? 0.30),
+      vatBucket: effectiveRevenue * (PF_TARGETS['Tax'] ?? 0.15),
+      realRevenueBucket: effectiveRevenue * (PF_TARGETS['Profit'] ?? 0.05),
     });
   }
 
@@ -105,7 +91,8 @@ export function runStressTest(inputs: StressTestInputs): StressTestResult {
   // Calculate bucket health based on stressed revenue
   const bucketHealth: BucketHealth[] = Object.entries(PF_TARGETS)
     .slice(0, 8)
-    .map(([name, target]) => {
+    .map(([name, rawTarget]) => {
+      const target = typeof rawTarget === 'number' ? rawTarget : (rawTarget as { target: number }).target / 100;
       const actual = adjustedRevenue * target;
       const baseline = baseWeeklyRevenue * target;
       const ratio = baseline > 0 ? actual / baseline : 1;

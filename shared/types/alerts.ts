@@ -4,6 +4,7 @@ export type AlertCategory =
   | 'AR'
   | 'AP'
   | 'VAT'
+  | 'Tax'
   | 'ProfitFirst'
   | 'Cash'
   | 'Inventory'

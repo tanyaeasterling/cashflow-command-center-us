@@ -4,7 +4,7 @@ import { formatCurrency, formatPercent } from "@/lib/formatters";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { FileText, Download, Loader2, CheckCircle, AlertTriangle, Info } from "lucide-react";
-import { CLIENT_CONFIG } from "../../../../shared/config/caulsConfig";
+import { CLIENT_CONFIG } from "../../../../shared/config/usConfig";
 
 export function Reports() {
   const { uploadedFiles, balanceSheet, profitLoss, arAging, apAging, alerts } = useReportStore();
@@ -13,7 +13,7 @@ export function Reports() {
   const handleExportPDF = async () => {
     try {
       const result = await exportMutation.mutateAsync({
-        clientSlug: 'cauls',
+        clientSlug: CLIENT_CONFIG.clientSlug,
         includeCharts: true,
       });
 
@@ -79,7 +79,7 @@ export function Reports() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h3 className="text-sm font-semibold" style={{ color: "var(--tec-purple-deep)" }}>
-              Export Findings Report (PDF)
+              Export Findings Report
             </h3>
             <p className="text-xs mt-1" style={{ color: "oklch(55% 0.06 300)" }}>
               Generates a branded PDF with executive summary, critical findings, recommended actions, and TEC contact footer.
@@ -99,7 +99,7 @@ export function Reports() {
               ? <Loader2 size={14} className="animate-spin" />
               : <Download size={14} />
             }
-            {exportMutation.isPending ? "Generating…" : "Download PDF"}
+            {exportMutation.isPending ? "Generating…" : "Export Report"}
           </button>
         </div>
 
@@ -160,22 +160,18 @@ export function Reports() {
       {/* Supported report types */}
       <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
         <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--tec-purple-deep)" }}>
-          Supported QuickBooks Report Types
+          Upload Checklist — US QBO Reports
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
           {[
-            { type: 'Balance Sheet', status: !!balanceSheet },
-            { type: 'Profit & Loss', status: !!profitLoss },
-            { type: 'A/R Aging Detail', status: !!arAging },
-            { type: 'A/P Aging Detail', status: !!apAging },
-            { type: 'VAT Tax Detail', status: false },
-            { type: 'VAT Summary', status: false },
-            { type: 'Profit First (XLSX)', status: false },
-            { type: 'Sales by Product', status: false },
-            { type: 'Cash Flow Statement', status: false },
-            { type: 'P&L by Month', status: false },
-            { type: 'P&L Comparison', status: false },
-            { type: 'Bank Statement', status: false },
+            { type: 'Profit & Loss (CSV)', status: !!profitLoss },
+            { type: 'Balance Sheet — Accrual (CSV)', status: !!balanceSheet },
+            { type: 'Balance Sheet — Cash (CSV)', status: false },
+            { type: 'A/R Aging Summary (CSV)', status: !!arAging },
+            { type: 'A/P Aging Summary (CSV)', status: !!apAging },
+            { type: 'Statement of Cash Flows (CSV)', status: false },
+            { type: 'Sales by Product/Service Summary (CSV)', status: false },
+            { type: 'Profit First Allocation Tracker (XLSX)', status: false },
           ].map(({ type, status }) => (
             <div key={type} className="flex items-center gap-2 text-xs py-1">
               {status

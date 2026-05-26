@@ -15,7 +15,7 @@ interface Tab {
 
 export function TabBar() {
   const { activeTab, setActiveTab } = useUIStore();
-  const { balanceSheet, profitLoss, arAging, apAging, vatSummary, profitFirst, alerts } = useReportStore();
+  const { balanceSheet, profitLoss, arAging, apAging, profitFirst, alerts } = useReportStore();
 
   const criticalCount = alerts.filter(a => a.level === 'critical' && !a.resolved).length;
 
@@ -25,7 +25,7 @@ export function TabBar() {
     { id: 'profit-first',  label: 'Profit First',   icon: <PiggyBank size={14} />,       hasData: !!profitFirst },
     { id: 'ar-aging',      label: 'A/R Aging',      icon: <Users size={14} />,           hasData: !!arAging },
     { id: 'ap-aging',      label: 'A/P Aging',      icon: <Building2 size={14} />,       hasData: !!apAging },
-    { id: 'vat',           label: 'VAT Forensics',  icon: <Receipt size={14} />,         hasData: !!vatSummary },
+    { id: 'sales-tax',     label: 'Sales Tax',      icon: <Receipt size={14} />,         hasData: !!balanceSheet },
     { id: 'inventory',     label: 'Inventory',      icon: <Package size={14} />,         hasData: false },
     { id: 'real-revenue',  label: 'Real Revenue',   icon: <TrendingUp size={14} />,      hasData: !!profitLoss },
     { id: 'debt-service',  label: 'Debt Service',   icon: <CreditCard size={14} />,      hasData: false },

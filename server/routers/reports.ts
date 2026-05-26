@@ -24,7 +24,7 @@ import { nanoid } from "nanoid";
 import type {
   BalanceSheetData, ProfitLossData, ARAgingData, APAgingData,
 } from "../../shared/types/reports";
-import { CLIENT_CONFIG } from "../../shared/config/caulsConfig";
+import { CLIENT_CONFIG } from "../../shared/config/usConfig";
 
 export const reportsRouter = router({
   upload: protectedProcedure
@@ -32,7 +32,7 @@ export const reportsRouter = router({
       filename: z.string(),
       mimeType: z.string(),
       base64Data: z.string(),
-      clientSlug: z.string().default("cauls"),
+      clientSlug: z.string().default(CLIENT_CONFIG.clientSlug),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -74,7 +74,7 @@ export const reportsRouter = router({
       let clientId = clientRows[0]?.id;
       if (!clientId) {
         const ins = await db.insert(clients)
-          .values({ name: "CaulCo Inc.", slug: "cauls" });
+          .values({ name: CLIENT_CONFIG.clientName, slug: CLIENT_CONFIG.clientSlug });
         clientId = Number((ins as unknown as { insertId: number }).insertId);
       }
 
@@ -84,7 +84,8 @@ export const reportsRouter = router({
           eq(reports.reportType, reportType),
           eq(reports.superseded, false),
         ));
-      const wasSuperseded = existingRows.length > 0;
+      const existingCount = existingRows.length;
+      const wasSuperseded = !!existingCount;
 
       if (wasSuperseded) {
         await db.update(reports)
@@ -136,7 +137,7 @@ export const reportsRouter = router({
     }),
 
   list: protectedProcedure
-    .input(z.object({ clientSlug: z.string().default("cauls") }))
+    .input(z.object({ clientSlug: z.string().default(CLIENT_CONFIG.clientSlug) }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) return [];
@@ -161,7 +162,7 @@ export const reportsRouter = router({
 
   runStressTest: protectedProcedure
     .input(z.object({
-      clientSlug: z.string().default("cauls"),
+      clientSlug: z.string().default(CLIENT_CONFIG.clientSlug),
       revenueChangePct: z.number().min(-50).max(50).default(0),
       expenseChangePct: z.number().min(-30).max(30).default(0),
       collectionDelayWeeks: z.number().min(0).max(8).default(0),
@@ -197,7 +198,7 @@ export const reportsRouter = router({
 
   exportPDF: protectedProcedure
     .input(z.object({
-      clientSlug: z.string().default("cauls"),
+      clientSlug: z.string().default(CLIENT_CONFIG.clientSlug),
       includeCharts: z.boolean().default(true),
     }))
     .mutation(async ({ input }) => {
@@ -280,9 +281,9 @@ ${warnings.length > 0 ? `<div class="section"><h2>Warnings</h2>${warnings.map(a 
   </ol>
 </div>
 <div class="footer">
-  <strong>Tanya Easterling Consulting</strong><br>
+  <strong>${CLIENT_CONFIG.firmName}</strong> — ${CLIENT_CONFIG.consultantName}<br>
   Schedule a review: ${CLIENT_CONFIG.schedulingLink}<br>
-  This report was generated automatically by the CaulCo Cashflow Command Center.
+  This report was generated automatically by the Cashflow Command Center.
 </div>
 </body>
 </html>`;
@@ -304,9 +305,10 @@ function dispatchCSVParser(reportType: string, rows: Record<string, string>[]): 
     case "ARaging":         return parseARaging(rows);
     case "APaging":         return parseAPaging(rows);
     case "SalesByProduct":  return parseSalesByProduct(rows);
-    case "BankStatement":   return parseBankStatement(rows);
     case "CashFlows":       return parseCashFlows(rows);
-    case "SupplierBalance": return parseSupplierBalance(rows);
+    // DISABLED for US edition (Caribbean-specific — do not delete):
+    // case "BankStatement":   return parseBankStatement(rows);    // ACB Caribbean PDF format
+    // case "SupplierBalance": return parseSupplierBalance(rows);  // CaulCo foreign supplier tracking
     default:                return { rows };
   }
 }
@@ -325,9 +327,10 @@ function dispatchExcelParser(
     case "ARaging":         return parseARaging(rawRows);
     case "APaging":         return parseAPaging(rawRows);
     case "SalesByProduct":  return parseSalesByProduct(rawRows);
-    case "BankStatement":   return parseBankStatement(rawRows);
     case "CashFlows":       return parseCashFlows(rawRows);
-    case "SupplierBalance": return parseSupplierBalance(rawRows);
+    // DISABLED for US edition (Caribbean-specific — do not delete):
+    // case "BankStatement":   return parseBankStatement(rawRows);    // ACB Caribbean PDF format
+    // case "SupplierBalance": return parseSupplierBalance(rawRows);  // CaulCo foreign supplier tracking
     default:                return { sheets: result.sheetNames };
   }
 }

@@ -13,7 +13,7 @@ import { CashPosition } from "./tabs/CashPosition";
 import { ProfitFirst } from "./tabs/ProfitFirst";
 import { ARaging } from "./tabs/ARaging";
 import { APaging } from "./tabs/APaging";
-import { VATForensics } from "./tabs/VATForensics";
+import { SalesTax } from "./tabs/SalesTax";
 import { Inventory } from "./tabs/Inventory";
 import { RealRevenue } from "./tabs/RealRevenue";
 import { DebtService } from "./tabs/DebtService";
@@ -31,7 +31,7 @@ function TabContent() {
     case 'profit-first': return <ProfitFirst />;
     case 'ar-aging':     return <ARaging />;
     case 'ap-aging':     return <APaging />;
-    case 'vat':          return <VATForensics />;
+    case 'sales-tax':    return <SalesTax />;
     case 'inventory':    return <Inventory />;
     case 'real-revenue': return <RealRevenue />;
     case 'debt-service': return <DebtService />;

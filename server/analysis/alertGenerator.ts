@@ -8,7 +8,7 @@ import type {
   ProfitFirstData,
   InventoryData,
 } from "../../shared/types/reports";
-import { CLIENT_CONFIG } from "../../shared/config/caulsConfig";
+import { CLIENT_CONFIG } from "../../shared/config/usConfig";
 import { nanoid } from "nanoid";
 
 interface AlertInput {
@@ -40,7 +40,7 @@ function makeAlert(
 }
 
 function fmt(n: number): string {
-  return `EC$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${CLIENT_CONFIG.currencySymbol}${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function pct(n: number): string {
@@ -66,19 +66,19 @@ export function generateAlerts(input: AlertInput): Alert[] {
     }
   }
 
-  // VAT Suspense
-  const vatSuspense = balanceSheet?.vatSuspense ?? 0;
-  if (vatSuspense > 1000) {
+  // Sales Tax Payable threshold
+  const salesTaxPayable = balanceSheet?.salesTaxPayable ?? 0;
+  if (salesTaxPayable > 5000) {
     alerts.push(makeAlert(
-      'critical', 'VAT',
-      `VAT Suspense ${fmt(vatSuspense)} — Forensic trace required`,
-      `VAT Suspense account balance of ${fmt(vatSuspense)} requires a full forensic trace to identify misallocated transactions.`,
+      'warning', 'Tax',
+      `Sales Tax Payable ${fmt(salesTaxPayable)} — verify filing is current`,
+      `Sales Tax Payable balance of ${fmt(salesTaxPayable)} exceeds the $5,000 threshold. Confirm current filing period is up to date.`,
     ));
   }
 
   // VAT at Port near zero
   const vatAtPort = vatSummary?.vatAtPort ?? 0;
-  const foreignOrdersActive = true; // CaulCo always has foreign orders
+  const foreignOrdersActive = CLIENT_CONFIG.foreignOrdersActive ?? false;
   if (vatAtPort < 100 && foreignOrdersActive) {
     alerts.push(makeAlert(
       'critical', 'VAT',
@@ -113,29 +113,6 @@ export function generateAlerts(input: AlertInput): Alert[] {
 
   // ─── WARNING RULES ─────────────────────────────────────────────────────────
 
-  // Stamp Tax gap
-  const stampTaxProvision = balanceSheet?.stampTaxProvision ?? 0;
-  const stampTaxAllocated = profitFirst?.latestWeek.buckets['StampTax'] ?? 0;
-  if (stampTaxProvision > 0 && stampTaxAllocated > 0 && stampTaxProvision > stampTaxAllocated * 1.5) {
-    alerts.push(makeAlert(
-      'warning', 'StampTax',
-      `Stamp Tax gap: ${fmt(stampTaxProvision)} vs ${fmt(stampTaxAllocated)} allocated`,
-      `Stamp Tax provision of ${fmt(stampTaxProvision)} exceeds allocated amount ${fmt(stampTaxAllocated)} by more than 50%. Shortfall: ${fmt(stampTaxProvision - stampTaxAllocated)}.`,
-    ));
-  }
-
-  // VAT allocation gap
-  if (vatSummary && balanceSheet) {
-    const vatBSAccount = balanceSheet.liabilities.currentLiabilities.find(l => /vat/i.test(l.name))?.amount ?? 0;
-    const vatAllocated = vatSummary.vatCollected;
-    if (vatBSAccount > 0 && vatAllocated > vatBSAccount * 1.8) {
-      alerts.push(makeAlert(
-        'warning', 'VAT',
-        `VAT allocation gap: ${fmt(vatAllocated)} allocated vs ${fmt(vatBSAccount)} on BS`,
-        `VAT allocated over 10 weeks (${fmt(vatAllocated)}) is more than 1.8x the Balance Sheet VAT account (${fmt(vatBSAccount)}). Review allocation methodology.`,
-      ));
-    }
-  }
 
   // Inventory GMROI by location
   if (inventory) {
@@ -160,27 +137,16 @@ export function generateAlerts(input: AlertInput): Alert[] {
   // Real revenue margin
   if (profitLoss) {
     const realRevenueMargin = profitLoss.netMargin;
-    if (realRevenueMargin < 0.15) {
+    if (realRevenueMargin < CLIENT_CONFIG.ratioThresholds.netMargin.warning) {
       alerts.push(makeAlert(
         'warning', 'Revenue',
-        `Real revenue margin ${pct(realRevenueMargin)} below 15% threshold`,
-        `Net margin of ${pct(realRevenueMargin)} is below the 15% Profit First real revenue target.`,
+        `Net margin ${pct(realRevenueMargin)} below ${pct(CLIENT_CONFIG.ratioThresholds.netMargin.warning)} threshold`,
+        `Net margin of ${pct(realRevenueMargin)} is below the warning threshold of ${pct(CLIENT_CONFIG.ratioThresholds.netMargin.warning)}.`,
       ));
     }
   }
 
-  // Rent bucket
-  if (profitFirst && profitFirst.latestWeek.totalIncome > 0) {
-    const rentBucket = profitFirst.latestWeek.buckets['Rent'] ?? 0;
-    const rentPct = rentBucket / profitFirst.latestWeek.totalIncome;
-    if (rentPct < 0.18) {
-      alerts.push(makeAlert(
-        'warning', 'ProfitFirst',
-        `Rent bucket ${pct(rentPct)} below 20% target`,
-        `Rent bucket is at ${pct(rentPct)} of income, below the 20% target. Current allocation requires correction.`,
-      ));
-    }
-  }
+  // REMOVED: Rent bucket warning (CaulCo-specific — not applicable to US clients)
 
   // A/R overdue 31+
   if (arAging) {
@@ -226,11 +192,6 @@ export function generateAlerts(input: AlertInput): Alert[] {
       'Upload the Accounts Payable Aging report to calculate supplier payment days and risk flags.'));
   }
 
-  if (!input.vatSummary) {
-    alerts.push(makeAlert('info', 'DataMissing',
-      'VAT Tax Detail not uploaded — forensic trace incomplete',
-      'Upload the VAT Tax Detail report to complete the VAT forensic trace and allocation gap analysis.'));
-  }
 
   return alerts;
 }

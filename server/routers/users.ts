@@ -4,7 +4,7 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { users, userProfiles, clients } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
-import { CLIENT_CONFIG } from "../../shared/config/caulsConfig";
+import { CLIENT_CONFIG } from "../../shared/config/usConfig";
 
 // ─── Admin guard middleware ───────────────────────────────────────────────────
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {

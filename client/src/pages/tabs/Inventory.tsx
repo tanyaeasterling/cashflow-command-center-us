@@ -3,137 +3,139 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { KPICard } from "@/components/ui/KPICard";
 import { formatCurrency } from "@/lib/formatters";
 import { Package } from "lucide-react";
-import { CLIENT_CONFIG } from "../../../../shared/config/caulsConfig";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
 
-// Demo data for when no inventory report is loaded
-const DEMO_LOCATIONS = CLIENT_CONFIG.locations.map((loc, i) => ({
-  location: loc,
-  value: [185000, 142000, 95000][i] ?? 0,
-  units: [1240, 980, 620][i] ?? 0,
-  gmroi: [2.1, 1.3, 0.0][i] ?? 0,
-  daysCover: [28, 35, 0][i] ?? 0,
-  turnover: [13, 10, 0][i] ?? 0,
-}));
-
 export function Inventory() {
-  const { } = useReportStore();
+  const { balanceSheet, profitLoss, salesByProduct } = useReportStore();
 
-  // Use demo data since inventory parsing requires custom integration
-  const locations = DEMO_LOCATIONS;
-  const totalValue = locations.reduce((s, l) => s + l.value, 0);
+  const inventoryValue =
+    balanceSheet?.assets.currentAssets.find(a => /inventory/i.test(a.name))?.amount ?? null;
 
-  const gmroiData = locations.map(l => ({
-    name: l.location,
-    GMROI: l.gmroi,
-    threshold: CLIENT_CONFIG.ratioThresholds.gmroi.healthy,
-  }));
+  const cogs = profitLoss?.totalCOGS ?? null;
 
-  const daysCoverData = locations.filter(l => l.daysCover > 0).map(l => ({
-    name: l.location,
-    'Days Cover': l.daysCover,
-  }));
+  const turnover = inventoryValue && cogs && inventoryValue > 0
+    ? cogs / inventoryValue
+    : null;
 
-  const gmroiStatus = (v: number) => v >= 2.0 ? 'healthy' : v >= 1.5 ? 'warning' : 'critical';
+  const daysInventory = turnover && turnover > 0
+    ? 365 / turnover
+    : null;
+
+  const topProducts = salesByProduct?.rows
+    .slice()
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 10) ?? null;
+
+  if (!balanceSheet && !salesByProduct) {
+    return (
+      <EmptyState
+        title="No inventory data loaded"
+        description="Upload your Balance Sheet (accrual basis) and Sales by Product/Service Summary to populate inventory metrics."
+        icon={<Package size={24} style={{ color: "var(--tec-purple)" }} />}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div
-        className="rounded-lg px-4 py-2.5 text-xs border flex items-center gap-2"
-        style={{ background: "oklch(96% 0.02 240)", borderColor: "oklch(85% 0.06 240)", color: "oklch(40% 0.10 240)" }}
-      >
-        <Package size={12} />
-        Inventory data shown is illustrative. Upload a Vend/POS inventory export or QBO inventory report to populate with live data.
-      </div>
-
+      {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KPICard title="Total Inventory Value" value={formatCurrency(totalValue, true)} status="neutral" icon={<Package size={18} />} />
-        <KPICard title="Locations" value={String(locations.length)} status="neutral" />
         <KPICard
-          title="Avg GMROI"
-          value={`${(locations.filter(l => l.gmroi > 0).reduce((s, l) => s + l.gmroi, 0) / locations.filter(l => l.gmroi > 0).length || 0).toFixed(2)}x`}
-          status={locations.some(l => l.gmroi > 0 && l.gmroi < 1.5) ? 'warning' : 'healthy'}
-          subtitle="Target: > 2.0x"
+          title="Inventory Value"
+          value={inventoryValue !== null ? formatCurrency(inventoryValue, true) : "—"}
+          subtitle="Balance Sheet — Current Assets"
+          status="neutral"
+          icon={<Package size={18} />}
         />
         <KPICard
-          title="Warehouse Turnover"
-          value={locations.find(l => /warehouse/i.test(l.location))?.turnover === 0 ? "0x" : `${locations.find(l => /warehouse/i.test(l.location))?.turnover ?? 0}x`}
-          status={locations.find(l => /warehouse/i.test(l.location))?.turnover === 0 ? 'critical' : 'healthy'}
-          subtitle="Zero = no sell-through"
+          title="Inventory Turnover"
+          value={turnover !== null ? `${turnover.toFixed(1)}x` : "—"}
+          subtitle="COGS ÷ Inventory Value"
+          status={turnover === null ? "neutral" : turnover >= 6 ? "healthy" : turnover >= 4 ? "warning" : "critical"}
+        />
+        <KPICard
+          title="Days of Inventory"
+          value={daysInventory !== null ? `${daysInventory.toFixed(0)} days` : "—"}
+          subtitle="(Inventory ÷ COGS) × 365"
+          status={daysInventory === null ? "neutral" : daysInventory <= 61 ? "healthy" : daysInventory <= 91 ? "warning" : "critical"}
+        />
+        <KPICard
+          title="Top Products"
+          value={topProducts ? String(topProducts.length) : "—"}
+          subtitle="From Sales by Product report"
+          status="neutral"
         />
       </div>
 
-      {/* Location table */}
-      <div className="bg-white rounded-xl border border-border p-4 shadow-sm">
-        <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--tec-purple-deep)" }}>
-          Inventory by Location
-        </h3>
-        <div className="table-scroll-wrapper">
-          <table className="w-full text-sm min-w-[500px]">
-            <thead>
-              <tr className="border-b border-border">
-                {['Location', 'Value', 'Units', 'GMROI', 'Days Cover', 'Turnover'].map(h => (
-                  <th key={h} className={`py-2 px-3 text-xs font-semibold ${h === 'Location' ? 'text-left' : 'text-right'}`}
-                    style={{ color: "oklch(55% 0.06 300)" }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {locations.map((loc, i) => (
-                <tr key={i} className="border-b border-border/50 hover:bg-muted/30">
-                  <td className="py-2 px-3 font-medium">{loc.location}</td>
-                  <td className="py-2 px-3 text-right">{formatCurrency(loc.value)}</td>
-                  <td className="py-2 px-3 text-right">{loc.units.toLocaleString()}</td>
-                  <td className="py-2 px-3 text-right">
-                    <span style={{ color: loc.gmroi === 0 ? "oklch(60% 0.05 300)" : loc.gmroi >= 2 ? "var(--tec-green)" : loc.gmroi >= 1.5 ? "var(--tec-amber)" : "var(--tec-red)" }}>
-                      {loc.gmroi === 0 ? "—" : `${loc.gmroi.toFixed(2)}x`}
-                    </span>
-                  </td>
-                  <td className="py-2 px-3 text-right">{loc.daysCover === 0 ? "—" : `${loc.daysCover}d`}</td>
-                  <td className="py-2 px-3 text-right">{loc.turnover === 0 ? "—" : `${loc.turnover}x`}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Top products table */}
+      {topProducts ? (
         <div className="bg-white rounded-xl border border-border p-4 shadow-sm">
-          <h3 className="text-sm font-semibold mb-4" style={{ color: "var(--tec-purple-deep)" }}>GMROI by Location</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={gmroiData}>
+          <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--tec-purple-deep)" }}>
+            Top 10 Products by Revenue
+          </h3>
+          <div className="table-scroll-wrapper">
+            <table className="w-full text-sm min-w-[400px]">
+              <thead>
+                <tr className="border-b border-border">
+                  {['Product', 'Qty', 'Revenue', '% of Total'].map(h => (
+                    <th
+                      key={h}
+                      className={`py-2 px-3 text-xs font-semibold ${h === 'Product' ? 'text-left' : 'text-right'}`}
+                      style={{ color: "oklch(55% 0.06 300)" }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {topProducts.map((row, i) => (
+                  <tr key={i} className="border-b border-border/50 hover:bg-muted/30">
+                    <td className="py-2 px-3 font-medium truncate max-w-[200px]">{row.product}</td>
+                    <td className="py-2 px-3 text-right">{row.qty.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right">{formatCurrency(row.amount)}</td>
+                    <td className="py-2 px-3 text-right" style={{ color: "var(--tec-purple)" }}>
+                      {row.percentOfTotal.toFixed(1)}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div
+          className="rounded-lg px-4 py-3 text-xs border flex items-center gap-2"
+          style={{ background: "oklch(96% 0.02 240)", borderColor: "oklch(85% 0.06 240)", color: "oklch(40% 0.10 240)" }}
+        >
+          <Package size={12} />
+          Upload a Sales by Product/Service Summary (CSV) to see top products by revenue.
+        </div>
+      )}
+
+      {/* Revenue bar chart */}
+      {topProducts && topProducts.length > 0 && (
+        <div className="bg-white rounded-xl border border-border p-4 shadow-sm">
+          <h3 className="text-sm font-semibold mb-4" style={{ color: "var(--tec-purple-deep)" }}>
+            Revenue by Product
+          </h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={topProducts.slice(0, 8)} margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="oklch(92% 0.005 300)" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}x`} />
-              <Tooltip formatter={(v: number) => `${v.toFixed(2)}x`} />
-              <Bar dataKey="GMROI" radius={[4, 4, 0, 0]}>
-                {gmroiData.map((entry, i) => (
-                  <Cell key={i} fill={entry.GMROI === 0 ? "oklch(80% 0.05 300)" : entry.GMROI >= 2 ? "var(--tec-green)" : entry.GMROI >= 1.5 ? "var(--tec-amber)" : "var(--tec-red)"} />
+              <XAxis dataKey="product" tick={{ fontSize: 10 }} tickFormatter={v => v.length > 12 ? v.slice(0, 12) + '…' : v} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}K`} />
+              <Tooltip formatter={(v: number) => formatCurrency(v)} />
+              <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
+                {topProducts.slice(0, 8).map((_, i) => (
+                  <Cell key={i} fill={i === 0 ? "var(--tec-purple)" : i < 3 ? "var(--tec-gold)" : "oklch(70% 0.08 310)"} />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
-        {daysCoverData.length > 0 && (
-          <div className="bg-white rounded-xl border border-border p-4 shadow-sm">
-            <h3 className="text-sm font-semibold mb-4" style={{ color: "var(--tec-purple-deep)" }}>Days Cover by Location</h3>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={daysCoverData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="oklch(92% 0.005 300)" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}d`} />
-                <Tooltip formatter={(v: number) => `${v} days`} />
-                <Bar dataKey="Days Cover" fill="var(--tec-purple)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

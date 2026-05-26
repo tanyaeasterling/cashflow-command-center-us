@@ -53,7 +53,7 @@ export function CashflowScore() {
   const hasRecentPF = profitFirst?.latestWeek?.weekLabel;
   const habitsScore = hasRecentPF ? 75 : profitFirst ? 40 : -1;
 
-  const operatingCF = cashFlows?.operatingActivities ?? null;
+  const operatingCF = cashFlows?.operating ?? null;
   let flowScore = -1;
   if (operatingCF !== null) {
     if (operatingCF > 0) flowScore = 85;

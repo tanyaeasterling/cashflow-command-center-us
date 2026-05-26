@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Copy, Check, Calendar, LogOut, Menu } from "lucide-react";
-import { CLIENT_CONFIG } from "../../../../shared/config/caulsConfig";
+import { CLIENT_CONFIG } from "../../../../shared/config/usConfig";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";

@@ -1,6 +1,6 @@
 import type { RatioResult, RatiosData } from "../../shared/types/ratios";
 import type { BalanceSheetData, ProfitLossData, ARAgingData, APAgingData, InventoryData } from "../../shared/types/reports";
-import { CLIENT_CONFIG } from "../../shared/config/caulsConfig";
+import { CLIENT_CONFIG } from "../../shared/config/usConfig";
 
 interface RatioInputs {
   balanceSheet?: BalanceSheetData;

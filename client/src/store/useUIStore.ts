@@ -6,7 +6,7 @@ export type TabId =
   | 'profit-first'
   | 'ar-aging'
   | 'ap-aging'
-  | 'vat'
+  | 'sales-tax'
   | 'inventory'
   | 'real-revenue'
   | 'debt-service'

@@ -3,7 +3,7 @@ import { KPICard } from "@/components/ui/KPICard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { CashflowScore } from "@/components/CashflowScore";
 import { formatCurrency, formatPercent } from "@/lib/formatters";
-import { CLIENT_CONFIG } from "../../../../shared/config/caulsConfig";
+import { CLIENT_CONFIG } from "../../../../shared/config/usConfig";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,

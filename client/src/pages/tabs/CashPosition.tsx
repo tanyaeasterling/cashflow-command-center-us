@@ -29,8 +29,7 @@ export function CashPosition() {
   const totalCurrentLiabilities = currentLiabilities.reduce((s, l) => s + (l.amount ?? 0), 0);
   const currentRatio = totalCurrentLiabilities > 0 ? totalCurrentAssets / totalCurrentLiabilities : null;
   const pfSubAccounts = balanceSheet.pfSubAccounts ?? [];
-  const vatSuspense = balanceSheet.vatSuspense ?? 0;
-  const stampTax = balanceSheet.stampTaxProvision ?? 0;
+  const salesTaxPayable = balanceSheet.salesTaxPayable ?? 0;
 
   const currentAssetsChartData = currentAssets
     .filter(a => a.amount !== 0)
@@ -108,25 +107,15 @@ export function CashPosition() {
             </div>
           )}
 
-          {/* VAT Suspense & Stamp Tax */}
-          {(vatSuspense > 0 || stampTax > 0) && (
+          {/* Sales Tax Payable */}
+          {salesTaxPayable > 0 && (
             <div className="mt-4 pt-3 border-t border-border space-y-2">
-              {vatSuspense > 0 && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium" style={{ color: "var(--tec-red)" }}>VAT Suspense</span>
-                  <span className="text-sm font-semibold" style={{ color: "var(--tec-red)" }}>
-                    {formatCurrency(vatSuspense)}
-                  </span>
-                </div>
-              )}
-              {stampTax > 0 && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium" style={{ color: "var(--tec-amber)" }}>Stamp Tax Provision</span>
-                  <span className="text-sm font-semibold" style={{ color: "var(--tec-amber)" }}>
-                    {formatCurrency(stampTax)}
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium" style={{ color: "var(--tec-amber)" }}>Sales Tax Payable</span>
+                <span className="text-sm font-semibold" style={{ color: "var(--tec-amber)" }}>
+                  {formatCurrency(salesTaxPayable)}
+                </span>
+              </div>
             </div>
           )}
         </div>

@@ -5,6 +5,7 @@ import { useReportStore } from "@/store/useReportStore";
 import { useUIStore } from "@/store/useUIStore";
 import { toast } from "sonner";
 import type { ReportType, UploadedFile } from "../../../../shared/types/reports";
+import { CLIENT_CONFIG } from "../../../../shared/config/usConfig";
 import { nanoid } from "nanoid";
 
 const ACCEPTED_TYPES = ".csv,.xlsx,.xls,.pdf,.docx";
@@ -45,7 +46,7 @@ export function UploadZone() {
         filename: file.name,
         mimeType: file.type || 'application/octet-stream',
         base64Data,
-        clientSlug: 'cauls',
+        clientSlug: CLIENT_CONFIG.clientSlug,
       });
 
       const uploadedFile: UploadedFile = {

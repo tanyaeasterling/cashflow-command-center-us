@@ -30,6 +30,8 @@ export function parseBalanceSheet(rows: Record<string, string>[]): BalanceSheetD
   let asOfDate = '';
   let basis: 'Cash' | 'Accrual' = 'Cash';
   let cashOnHand = 0;
+  let salesTaxPayable: number | undefined;
+  let ownerDraws: number | undefined;
 
   let section: 'current_assets' | 'fixed_assets' | 'other_assets' | 'current_liabilities' | 'longterm_liabilities' | 'equity' | 'none' = 'none';
 
@@ -65,6 +67,10 @@ export function parseBalanceSheet(rows: Record<string, string>[]): BalanceSheetD
     if (/^Equity|^Owner|^Shareholder/i.test(name)) { section = 'equity'; continue; }
 
     if (amount === null) continue;
+
+    // US-specific field extraction
+    if (/sales tax payable/i.test(name) && section === 'current_liabilities') salesTaxPayable = amount;
+    if (/owner draws|owner distributions/i.test(name) && section === 'equity') ownerDraws = amount;
 
     switch (section) {
       case 'current_assets':       currentAssets.push({ name, amount }); break;
@@ -105,5 +111,7 @@ export function parseBalanceSheet(rows: Record<string, string>[]): BalanceSheetD
     assets: { currentAssets, fixedAssets, otherAssets, totalAssets },
     liabilities: { currentLiabilities, longTermLiabilities, totalLiabilities },
     equity: { items: equityItems, totalEquity },
+    ...(salesTaxPayable !== undefined && { salesTaxPayable }),
+    ...(ownerDraws !== undefined && { ownerDraws }),
   };
 }

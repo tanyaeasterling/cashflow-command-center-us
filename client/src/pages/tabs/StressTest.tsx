@@ -76,15 +76,15 @@ export function StressTest() {
     setParams(prev => ({ ...prev, [key]: v }));
 
   const results = useMemo(() => {
-    const baseRevenue = profitLoss?.totalIncome ?? 250000;
-    const baseCOGS = profitLoss?.totalCOGS ?? 150000;
-    const baseExpenses = profitLoss?.totalExpenses ?? 60000;
+    const baseRevenue = profitLoss?.totalIncome ?? 150000;
+    const baseCOGS = profitLoss?.totalCOGS ?? 90000;
+    const baseExpenses = profitLoss?.totalExpenses ?? 40000;
 
     // FIXED: safe guard on currentAssets which may be undefined from parser
     const currentAssets = balanceSheet?.assets?.currentAssets ?? [];
-    const baseCash = currentAssets.find(a => /cash/i.test(a.name))?.amount ?? 50000;
+    const baseCash = currentAssets.find(a => /cash/i.test(a.name))?.amount ?? 25000;
 
-    const baseAR = arAging?.totals.total ?? 80000;
+    const baseAR = arAging?.totals.total ?? 15000;
 
     const stressRevenue = baseRevenue * (1 + params.revenueChange / 100);
     const stressCOGS = baseCOGS * (1 + params.cogsChange / 100);
@@ -126,8 +126,8 @@ export function StressTest() {
   } = results;
 
   const scenarioBarData = [
-    { name: 'Revenue', Base: profitLoss?.totalIncome ?? 250000, Stress: stressRevenue },
-    { name: 'Net Income', Base: profitLoss?.netIncome ?? 40000, Stress: stressNetIncome },
+    { name: 'Revenue', Base: profitLoss?.totalIncome ?? 150000, Stress: stressRevenue },
+    { name: 'Net Income', Base: profitLoss?.netIncome ?? 20000, Stress: stressNetIncome },
   ];
 
   return (
