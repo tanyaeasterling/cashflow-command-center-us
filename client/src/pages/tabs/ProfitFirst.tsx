@@ -1,7 +1,7 @@
 import { useReportStore } from "@/store/useReportStore";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatCurrency, formatPercent } from "@/lib/formatters";
-import { CLIENT_CONFIG } from "../../../../shared/config/caulsConfig";
+import { CLIENT_CONFIG } from "../../../../shared/config/usConfig";
 import { PiggyBank, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,

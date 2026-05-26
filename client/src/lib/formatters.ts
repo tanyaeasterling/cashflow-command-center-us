@@ -1,4 +1,4 @@
-import { CLIENT_CONFIG } from "../../../shared/config/caulsConfig";
+import { CLIENT_CONFIG } from "../../../shared/config/usConfig";
 
 export function formatCurrency(value: number | null | undefined, compact = false): string {
   if (value === null || value === undefined) return "—";

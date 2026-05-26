@@ -1,5 +1,5 @@
 import { useReportStore } from "@/store/useReportStore";
-import { CLIENT_CONFIG } from "../../../shared/config/caulsConfig";
+import { CLIENT_CONFIG } from "../../../shared/config/usConfig";
 
 interface LetterScore {
   letter: string;
@@ -128,8 +128,8 @@ export function CashflowScore() {
       score: flowScore,
       status: scoreToStatus(flowScore),
       detail: operatingCF !== null
-        ? `Operating CF: EC$${operatingCF.toLocaleString()}`
-        : profitLoss ? `Net income proxy: EC$${(profitLoss.netIncome ?? 0).toLocaleString()}` : 'Upload Cash Flow Statement',
+        ? `Operating CF: ${CLIENT_CONFIG.currencySymbol}${operatingCF.toLocaleString()}`
+        : profitLoss ? `Net income proxy: ${CLIENT_CONFIG.currencySymbol}${(profitLoss.netIncome ?? 0).toLocaleString()}` : 'Upload Cash Flow Statement',
     },
     {
       letter: 'L', label: 'Leaks',
